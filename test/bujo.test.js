@@ -20,8 +20,22 @@ describe('parseLine', () => {
   it('parses a header date line', () => {
     const p = parseLine('THU 13 AUG 2026')
     expect(p.header).toBe(true)
+    expect(p.headerExtra).toBeNull()
     expect(p.timestamp).toBeNull()
     expect(p.bullet).toBeNull()
+  })
+
+  it('parses a header date line with extra trailing text', () => {
+    const line = "MON 06 JUL 2026  WEEK 28  SO-AND-SO'S BIRTHDAY"
+    const p = parseLine(line)
+    expect(p.header).toBe(true)
+    expect(p.headerExtra).not.toBeNull()
+    expect(line.slice(p.headerExtra.from, p.headerExtra.to)).toBe("WEEK 28  SO-AND-SO'S BIRTHDAY")
+  })
+
+  it('does not include the separating whitespace in headerExtra', () => {
+    const p = parseLine('THU 13 AUG 2026   EXTRA')
+    expect(p.headerExtra.from).toBe('THU 13 AUG 2026   '.length)
   })
 
   it('does not treat a bare label as a header', () => {

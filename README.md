@@ -64,7 +64,9 @@ THU 13 AUG 2026
   [`src/cycle.js`](src/cycle.js) for the implementation and the guards against accidental taps
   (right-click, drag, double-click, an active selection, etc.).
 - **Header** — an unindented line naming a day of the week and containing a 4-digit year (e.g.
-  `THU 13 AUG 2026`) is rendered in bold as a date header.
+  `THU 13 AUG 2026`) is rendered in bold as a date header. Anything after the date (e.g. `THU 13
+  AUG 2026  WEEK 33  SO-AND-SO'S BIRTHDAY`) stays bold but renders in a slightly muted shade —
+  darker in a dark theme, lighter in a light theme — to set it apart from the date itself.
 - Everything else — indentation, item text, blank lines — is left as ordinary text, untouched.
 
 The parser lives entirely in [`src/bujo.js`](src/bujo.js), independent of the editor UI; see

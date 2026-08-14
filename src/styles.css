@@ -121,6 +121,23 @@ body {
   color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
 }
 
+/*
+ * Free text after the date on a header line (e.g. "MON 06 JUL 2026  WEEK 28
+ * SO-AND-SO'S BIRTHDAY" -- everything from "WEEK" on). Stays bold via
+ * inheritance from .cm-bujo-header on the parent span; only the color
+ * differs. color-mix() toward the background (rather than a fixed gray)
+ * means it comes out darker in a dark theme and lighter in a light theme
+ * automatically, without a separate light/dark branch -- it's relative to
+ * whichever theme is actually active.
+ */
+.cm-bujo-header-extra {
+  color: color-mix(
+    in srgb,
+    var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000)) 70%,
+    var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff)) 30%
+  );
+}
+
 .cm-bujo-bullet {
   font-weight: 700;
 }

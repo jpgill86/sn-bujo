@@ -13,6 +13,13 @@ function buildDecorations(view) {
 
       if (parsed.header) {
         builder.add(line.from, line.to, Decoration.mark({ class: 'cm-bujo-header' }))
+        if (parsed.headerExtra) {
+          builder.add(
+            line.from + parsed.headerExtra.from,
+            line.from + parsed.headerExtra.to,
+            Decoration.mark({ class: 'cm-bujo-header-extra' })
+          )
+        }
       }
 
       if (parsed.timestamp) {

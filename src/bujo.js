@@ -34,7 +34,12 @@ export function nextTaskBullet(ch) {
 }
 
 const TIMESTAMP_RE = /^~?\d{1,2}:\d{2}(\s?[ap]m)?/i
-const HEADER_RE = /^(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?,?\s+.*\d{4}\s*$/i
+// Matches just the date portion of a header line -- day-of-week through the
+// first run of 4 digits (the year). Deliberately doesn't anchor to the end
+// of the line: a header may have extra free text after the date (e.g. "MON
+// 06 JUL 2026  WEEK 28  SO-AND-SO'S BIRTHDAY"), which parseLine() below
+// captures separately as `headerExtra` so it can be styled differently.
+const HEADER_DATE_RE = /^(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?,?\s+.*?\d{4}(?=\s|$)/i
 
 // A single uppercase letter (other than A/I, which read as English words)
 // or a single ASCII punctuation character, followed by a space or EOL,
@@ -54,6 +59,7 @@ const GENERIC_BULLET_EXCLUDE = new Set(['A', 'I'])
  *   bullet: {from: number, to: number, kind: string} | null,
  *   content: {from: number, to: number},
  *   header: boolean,
+ *   headerExtra: {from: number, to: number} | null,
  * }}
  */
 export function parseLine(text) {
@@ -99,7 +105,20 @@ export function parseLine(text) {
     }
   }
 
-  const header = !timestamp && !bullet && indentEnd === 0 && HEADER_RE.test(text)
+  let header = false
+  let headerExtra = null
+  if (!timestamp && !bullet && indentEnd === 0) {
+    const dateMatch = HEADER_DATE_RE.exec(text)
+    if (dateMatch) {
+      header = true
+      const dateEnd = dateMatch[0].length
+      const wsAfterDate = /^\s*/.exec(text.slice(dateEnd))[0].length
+      const extraStart = dateEnd + wsAfterDate
+      if (extraStart < text.length) {
+        headerExtra = { from: extraStart, to: text.length }
+      }
+    }
+  }
 
   return {
     indent: { from: 0, to: indentEnd },
@@ -107,5 +126,6 @@ export function parseLine(text) {
     bullet,
     content: { from: pos, to: text.length },
     header,
+    headerExtra,
   }
 }
