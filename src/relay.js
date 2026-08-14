@@ -36,10 +36,10 @@ function buildPreview(text) {
  * a localStorage-backed standalone mode so the editor is testable with no
  * app involved.
  *
- * @param {{onNote: (text: string) => void, onSpellcheck: (enabled: boolean) => void}} handlers
+ * @param {{onNote: (text: string) => void, onSpellcheck: (enabled: boolean) => void, onSaveStatus?: (status: 'saving' | 'saved') => void}} handlers
  * @returns {{ save: (text: string) => void }}
  */
-export function connect({ onNote, onSpellcheck }) {
+export function connect({ onNote, onSpellcheck, onSaveStatus }) {
   const isStandalone = window.parent === window
 
   if (isStandalone) {
@@ -48,7 +48,9 @@ export function connect({ onNote, onSpellcheck }) {
     onSpellcheck(true)
     return {
       save(text) {
+        onSaveStatus?.('saving')
         window.localStorage.setItem(STANDALONE_STORAGE_KEY, text)
+        onSaveStatus?.('saved')
       },
     }
   }
@@ -90,15 +92,19 @@ export function connect({ onNote, onSpellcheck }) {
       // context-item message -- if the host tears the iframe down on
       // navigation before that message and before the debounce timer
       // fires, the pending setTimeout is destroyed with it and the save
-      // never reaches the host at all. That caused real data loss on
-      // Android: content typed into a note vanished after simply
-      // navigating away and back. skipDebouncer sends every edit
+      // never reaches the host at all. skipDebouncer sends every edit
       // immediately instead, trading a bit of message-passing efficiency
       // for not losing content.
-      relay.saveItems([capturedNote], undefined, true, () => {
-        capturedNote.content.text = text
-        capturedNote.content.preview_plain = buildPreview(text)
-      })
+      onSaveStatus?.('saving')
+      relay.saveItems(
+        [capturedNote],
+        () => onSaveStatus?.('saved'),
+        true,
+        () => {
+          capturedNote.content.text = text
+          capturedNote.content.preview_plain = buildPreview(text)
+        }
+      )
     },
   }
 }
