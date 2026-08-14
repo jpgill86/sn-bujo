@@ -1,6 +1,6 @@
 {
   "name": "sn-bujo",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "A Standard Notes editor with syntax highlighting for bullet-journal style plain text notes.",
   "private": true,
   "license": "MIT",
@@ -34,6 +34,7 @@
     "@standardnotes/component-relay": "^2.2.2"
   },
   "devDependencies": {
+    "jsdom": "^25.0.1",
     "vite": "^6.4.3",
     "vitest": "^3.2.7"
   }

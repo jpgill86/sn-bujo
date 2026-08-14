@@ -36,10 +36,10 @@ function buildPreview(text) {
  * a localStorage-backed standalone mode so the editor is testable with no
  * app involved.
  *
- * @param {{onNote: (text: string) => void, onSpellcheck: (enabled: boolean) => void, onThemesChange?: () => void}} handlers
+ * @param {{onNote: (text: string) => void, onSpellcheck: (enabled: boolean) => void}} handlers
  * @returns {{ save: (text: string) => void }}
  */
-export function connect({ onNote, onSpellcheck, onThemesChange }) {
+export function connect({ onNote, onSpellcheck }) {
   const isStandalone = window.parent === window
 
   if (isStandalone) {
@@ -69,7 +69,6 @@ export function connect({ onNote, onSpellcheck, onThemesChange }) {
     // by com.sncommunity.advanced-checklist, an official full-pane-style
     // editor confirmed working on Android.
     handleRequestForContentHeight: () => undefined,
-    onThemesChange,
     options: { coallesedSaving: true, coallesedSavingDelay: 250 },
   })
 

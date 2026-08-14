@@ -1,17 +1,27 @@
-import { EditorState, Compartment } from '@codemirror/state'
+import { EditorState, Compartment, Annotation } from '@codemirror/state'
 import { EditorView, keymap, drawSelection } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { bujoHighlight } from './decorate.js'
 
 const spellcheckCompartment = new Compartment()
 
+// Tags a transaction as a remote (host-driven) content update rather than a
+// user edit, so the update listener below can tell them apart. This is
+// attached directly to the transaction rather than tracked via an outer
+// mutable flag (the previous approach) because a flag toggled synchronously
+// around dispatch() is only reliable if the update listener is guaranteed to
+// run synchronously within that same dispatch call. A prior version of this
+// file used such a flag and it was implicated in a data-loss bug on Android:
+// remote updates could be misread as user edits, triggering a save that
+// overwrote real note content with empty text. Annotations travel with the
+// transaction itself, so this check can't race regardless of listener timing.
+const remoteUpdate = Annotation.define()
+
 /**
  * Create a CodeMirror editor bound to `parent`, calling `onChange(docText)`
  * whenever the user edits the document (not when we programmatically set it).
  */
 export function createEditor({ parent, doc, onChange, spellcheck = true }) {
-  let applyingRemote = false
-
   const state = EditorState.create({
     doc,
     extensions: [
@@ -23,7 +33,8 @@ export function createEditor({ parent, doc, onChange, spellcheck = true }) {
       spellcheckCompartment.of(EditorView.contentAttributes.of({ spellcheck: String(spellcheck) })),
       bujoHighlight,
       EditorView.updateListener.of((update) => {
-        if (update.docChanged && !applyingRemote) {
+        const isRemote = update.transactions.some((tr) => tr.annotation(remoteUpdate))
+        if (update.docChanged && !isRemote) {
           onChange(update.state.doc.toString())
         }
       }),
@@ -37,11 +48,10 @@ export function createEditor({ parent, doc, onChange, spellcheck = true }) {
     /** Replace the document without triggering onChange (for remote updates). */
     setDoc(text) {
       if (view.state.doc.toString() === text) return
-      applyingRemote = true
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: text },
+        annotations: remoteUpdate.of(true),
       })
-      applyingRemote = false
     },
     setSpellcheck(enabled) {
       view.dispatch({
@@ -49,20 +59,6 @@ export function createEditor({ parent, doc, onChange, spellcheck = true }) {
           EditorView.contentAttributes.of({ spellcheck: String(enabled) })
         ),
       })
-    },
-    /**
-     * Force a style recalculation and remeasure. Standard Notes swaps the
-     * active theme's <link> stylesheet live while our iframe stays mounted;
-     * in some hosts the CSS custom-property changes this produces (our
-     * colors, which are all `var(--sn-stylekit-*)`) don't visibly repaint
-     * until something forces a reflow. Call this from the host's
-     * onThemesChange notification.
-     */
-    refreshForThemeChange() {
-      // Reading a layout property forces the browser to flush any pending
-      // style recalculation immediately rather than on the next paint.
-      void view.dom.offsetHeight
-      view.requestMeasure()
     },
   }
 }

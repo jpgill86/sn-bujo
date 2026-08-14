@@ -18,5 +18,4 @@ const editor = createEditor({
 bridge = connect({
   onNote: (text) => editor.setDoc(text),
   onSpellcheck: (enabled) => editor.setSpellcheck(enabled),
-  onThemesChange: () => editor.refreshForThemeChange(),
 })
