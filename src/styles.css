@@ -51,54 +51,15 @@ body {
 
 .cm-editor {
   height: 100%;
-  /*
-   * --sn-stylekit-monospace-font has the exact same iframe-boundary problem
-   * as --sn-stylekit-font-size-editor below: only ever defined in the app's
-   * own base stylesheet, never a theme file, so var() here always fell back
-   * to our own guess. That guess ('Ubuntu Mono') didn't match the app's
-   * real default stack, and different fonts have different natural
-   * line-box metrics -- which is what was actually producing a visible
-   * line-height mismatch against Plain Text, not the line-height property
-   * itself. Matched to the app's real desktop default.
-   */
   font-family: var(
     --sn-stylekit-monospace-font,
-    'SFMono-Regular',
-    Consolas,
-    'Liberation Mono',
-    Menlo,
     'Ubuntu Mono',
-    'Courier New',
+    courier,
     monospace
   );
-  /*
-   * --sn-stylekit-font-size-editor is only ever defined in the app's own
-   * base stylesheet (packages/web/src/stylesheets/_main.scss), never in a
-   * theme file -- unlike color variables, it never actually reaches our
-   * iframe via the theme-injection mechanism, so var(...) here always
-   * silently fell back to whatever default we gave it. Hardcode the app's
-   * real values (including its responsive breakpoint) instead of guessing;
-   * var() stays in case some theme ever does redeclare it, which would then
-   * correctly take precedence.
-   */
-  font-size: var(--sn-stylekit-font-size-editor, 0.9375rem);
-  /*
-   * Plain Text's default "Editor Line Height" preference is "Normal", which
-   * maps to Tailwind's leading-normal (line-height: 1.5) -- a plain
-   * unitless preference default (PrefDefaults.ts), not a theme-dependent
-   * CSS variable, so there's no iframe-boundary issue here: just match the
-   * number directly. NOTE: setting it here alone doesn't actually work --
-   * see the .cm-scroller override below, which is what really controls it.
-   */
-  line-height: 1.5;
+  font-size: var(--sn-stylekit-font-size-editor, 1.21rem);
   background: var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff));
   color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
-}
-
-@media screen and (max-width: 768px) {
-  .cm-editor {
-    font-size: var(--sn-stylekit-font-size-editor, 1rem);
-  }
 }
 
 .cm-editor.cm-focused {
@@ -144,20 +105,9 @@ body {
   padding: 0;
 }
 
-/*
- * CodeMirror's own base theme sets `.cm-scroller { line-height: 1.4 }`
- * directly (not inherited from .cm-editor), injected via the same
- * runtime <style> tag responsible for the .cm-content padding and
- * .cm-cursor color bugs above. Because it's a direct declaration on this
- * element (not inherited), the `line-height: 1.5` set on .cm-editor above
- * never actually reaches rendered lines -- this is the rule that does.
- * Compound selector to reliably beat CodeMirror's same-specificity rule
- * regardless of DOM insertion order.
- */
-.cm-editor .cm-scroller {
+.cm-scroller {
   overflow: auto;
   font-family: inherit;
-  line-height: 1.5;
 }
 
 /* --- bullet journal tokens --- */
