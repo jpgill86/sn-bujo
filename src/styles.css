@@ -57,9 +57,25 @@ body {
     courier,
     monospace
   );
-  font-size: var(--sn-stylekit-font-size-editor, 1.21rem);
+  /*
+   * --sn-stylekit-font-size-editor is only ever defined in the app's own
+   * base stylesheet (packages/web/src/stylesheets/_main.scss), never in a
+   * theme file -- unlike color variables, it never actually reaches our
+   * iframe via the theme-injection mechanism, so var(...) here always
+   * silently fell back to whatever default we gave it. Hardcode the app's
+   * real values (including its responsive breakpoint) instead of guessing;
+   * var() stays in case some theme ever does redeclare it, which would then
+   * correctly take precedence.
+   */
+  font-size: var(--sn-stylekit-font-size-editor, 0.9375rem);
   background: var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff));
   color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
+}
+
+@media screen and (max-width: 768px) {
+  .cm-editor {
+    font-size: var(--sn-stylekit-font-size-editor, 1rem);
+  }
 }
 
 .cm-editor.cm-focused {
