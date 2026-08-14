@@ -102,6 +102,13 @@ function isPlainUnmodifiedClick(event) {
 const DRAG_SLOP_PX = 6
 const DRAG_SLOP_MS = 600
 
+// How long after touchend to keep suppressing the on-screen keyboard (see
+// the inputMode discussion below) before restoring normal typing behavior.
+// Long enough to cover Android's IME show/hide decision, which happens
+// asynchronously after touchend; short enough that it can't plausibly delay
+// a deliberate next tap intended to bring the keyboard back up.
+const RESTORE_INPUTMODE_MS = 100
+
 // Tracks the pending mousedown/touchstart hit until its paired click/touchend.
 // Module-scoped rather than per-instance is fine here: a mousedown (or
 // touchstart) on one editor instance is always immediately followed by its
@@ -109,6 +116,28 @@ const DRAG_SLOP_MS = 600
 // instance's events.
 let pendingMouse = null
 let pendingTouch = null
+let restoreInputModeTimer = null
+
+// Cancels any scheduled restore and puts inputMode back immediately. Used
+// both by the (delayed) normal restore path and by touchcancel, so a
+// gesture that gets interrupted can never leave inputMode stuck on 'none' --
+// that would silently break the keyboard for real typing elsewhere, which
+// would be a much worse bug than the one this whole mechanism fixes.
+function restoreInputModeNow(view, prevInputMode) {
+  if (restoreInputModeTimer !== null) {
+    clearTimeout(restoreInputModeTimer)
+    restoreInputModeTimer = null
+  }
+  if (view.dom.isConnected) view.contentDOM.inputMode = prevInputMode
+}
+
+function scheduleInputModeRestore(view, prevInputMode) {
+  if (restoreInputModeTimer !== null) clearTimeout(restoreInputModeTimer)
+  restoreInputModeTimer = setTimeout(() => {
+    restoreInputModeTimer = null
+    if (view.dom.isConnected) view.contentDOM.inputMode = prevInputMode
+  }, RESTORE_INPUTMODE_MS)
+}
 
 /**
  * CodeMirror extension: tapping/clicking directly on a task bullet's
@@ -134,6 +163,22 @@ let pendingTouch = null
  * preventing default on touchstart itself: that would also block a
  * genuine scroll gesture that happens to start on a bullet, before we can
  * tell a tap from a drag.
+ *
+ * preventDefault() on touchend stops the caret from moving, but on Android
+ * it turns out *not* to reliably stop the on-screen keyboard from
+ * reappearing when the editor already had focus -- that decision isn't
+ * gated by the DOM event's cancelable default action at all, it's read by
+ * the platform's input method framework from the focused element's
+ * `inputmode` attribute. Setting `inputmode="none"` on contentDOM for the
+ * duration of a bullet touch (touchstart through shortly after
+ * touchend/touchcancel) tells Android not to show a keyboard for this tap,
+ * without affecting normal typing before or after. This is a best-effort
+ * platform workaround -- live inputmode changes on an already-focused
+ * element aren't guaranteed to be honored on every Android/WebView version
+ * -- so restoring it is unconditional and can't be skipped on any exit
+ * path, including an interrupted gesture (touchcancel): getting this wrong
+ * would silently break the keyboard for real typing, a worse bug than the
+ * one it's fixing.
  */
 export const taskCycle = [
   flashField,
@@ -167,15 +212,24 @@ export const taskCycle = [
       pendingTouch = null
       if (event.touches.length !== 1) return false
       if (!view.state.selection.main.empty) return false
+      const target = event.target
+      if (!(target instanceof Element) || !target.closest('.cm-bujo-bullet')) return false
 
       const touch = event.touches[0]
-      pendingTouch = { x: touch.clientX, y: touch.clientY, time: Date.now() }
+      const pos = view.posAtCoords({ x: touch.clientX, y: touch.clientY })
+      if (pos == null || !taskBulletAt(view.state, pos)) return false
+
+      const prevInputMode = view.contentDOM.inputMode
+      view.contentDOM.inputMode = 'none'
+      pendingTouch = { x: touch.clientX, y: touch.clientY, time: Date.now(), prevInputMode }
       return false // never prevent default here -- would also block scrolling
     },
     touchend(event, view) {
       const p = pendingTouch
       pendingTouch = null
       if (!p) return false
+      scheduleInputModeRestore(view, p.prevInputMode)
+
       if (event.touches.length !== 0 || event.changedTouches.length !== 1) return false
       const touch = event.changedTouches[0]
       if (!withinTapSlop(touch.clientX - p.x, touch.clientY - p.y, Date.now() - p.time)) {
@@ -185,6 +239,12 @@ export const taskCycle = [
       const pos = view.posAtCoords({ x: p.x, y: p.y })
       if (pos == null) return false
       return cycleTaskBulletAt(view, pos)
+    },
+    touchcancel(event, view) {
+      const p = pendingTouch
+      pendingTouch = null
+      if (p) restoreInputModeNow(view, p.prevInputMode)
+      return false
     },
   }),
 ]
