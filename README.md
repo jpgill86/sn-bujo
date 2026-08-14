@@ -107,6 +107,19 @@ bumps automatically — no need to reinstall on each machine.
 
 One-time setup: in the repo's Settings → Pages, set Source to "GitHub Actions".
 
+## Status indicators
+
+Two small, unobtrusive readouts live at the bottom of the editor:
+
+- **Save status** (bottom-right) — always visible: "Saving…" while an edit is in flight, then
+  "Saved HH:MM:SS" once the host confirms it. A quick sanity check that edits are actually
+  reaching the host, not just displayed locally.
+- **Connection trace** (bottom-left) — hidden by default. It records each host↔component
+  handshake milestone as it happens and only reveals itself if something goes wrong: a thrown
+  error, or no sign of life from the host within a few seconds (some failures — see
+  [`src/relay.js`](src/relay.js) — never throw, so this isn't limited to reacting to errors).
+  If you ever see it, whatever it stopped at is where the connection broke.
+
 ## Data-integrity guarantee
 
 The editor reads and writes only `note.content.text` (plus `note.content.preview_plain`, the

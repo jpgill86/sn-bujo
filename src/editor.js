@@ -6,15 +6,15 @@ import { bujoHighlight } from './decorate.js'
 const spellcheckCompartment = new Compartment()
 
 // Tags a transaction as a remote (host-driven) content update rather than a
-// user edit, so the update listener below can tell them apart. This is
-// attached directly to the transaction rather than tracked via an outer
-// mutable flag (the previous approach) because a flag toggled synchronously
-// around dispatch() is only reliable if the update listener is guaranteed to
-// run synchronously within that same dispatch call. A prior version of this
-// file used such a flag and it was implicated in a data-loss bug on Android:
-// remote updates could be misread as user edits, triggering a save that
-// overwrote real note content with empty text. Annotations travel with the
-// transaction itself, so this check can't race regardless of listener timing.
+// user edit, so the update listener below can tell them apart. This used to
+// be tracked via an outer mutable boolean flag toggled around dispatch(),
+// which only reliably distinguishes remote vs. local updates if the update
+// listener always runs synchronously within that same dispatch call.
+// Switched to an annotation (which travels with the transaction itself, so
+// it can't race regardless of listener timing) while chasing an Android
+// data-loss bug -- that turned out to have a different root cause (see
+// relay.js's postMessage patch), but this is still the more robust,
+// idiomatic CodeMirror 6 pattern for the problem, so it stays.
 const remoteUpdate = Annotation.define()
 
 /**

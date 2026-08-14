@@ -21,26 +21,40 @@ function showSaveStatus(status) {
 // needing devtools/remote debugging. Whatever stage never appears is where
 // it broke.
 //
-// NOTE: this is deliberately always visible for now, not just on error.
-// An earlier version hid it unless an 'error:'/'rejection:' stage was
-// recorded, but the postMessage-origin bug this trace helped find has a
-// silent failure mode too (see relay.js) -- no thrown error, just messages
-// quietly going nowhere. Hiding this by default would hide that. Revisit
-// hiding it once behavior has been solid across a few releases.
+// Hidden by default -- shown only if something's actually wrong, so it
+// doesn't take up screen space during normal use. "Wrong" is deliberately
+// broader than "threw an error": a previous version of the postMessage
+// patch in relay.js caused a real failure that never threw anything, just
+// silently dropped every message from the host. So in addition to reacting
+// to actual errors/rejections, a one-shot timer reveals the trace if the
+// handshake hasn't shown any sign of life within a few seconds -- catching
+// that class of silent failure too, not just thrown ones.
 const diagStages = []
+let sawHealthySignal = false
 function showDiag(stage) {
   diagStages.push(stage)
   if (diagEl) diagEl.textContent = diagStages.join(' > ')
+  if (stage === 'standalone' || stage === 'ready' || stage === 'item-received') {
+    sawHealthySignal = true
+  }
+  if (diagEl && (stage.startsWith('error:') || stage.startsWith('rejection:'))) {
+    diagEl.hidden = false
+  }
 }
 
-// Same reasoning: surface uncaught errors directly on screen, since devtools
-// aren't available on mobile.
 window.addEventListener('error', (event) => {
   showDiag(`error: ${event.message}`)
 })
 window.addEventListener('unhandledrejection', (event) => {
   showDiag(`rejection: ${event.reason}`)
 })
+
+setTimeout(() => {
+  if (sawHealthySignal || !diagEl) return
+  diagStages.push('stalled: no response from host after 8s')
+  diagEl.textContent = diagStages.join(' > ')
+  diagEl.hidden = false
+}, 8000)
 
 let bridge = null
 

@@ -106,14 +106,13 @@ export function connect({ onNote, onSpellcheck, onSaveStatus, onDiag }) {
     onReady: () => onDiag?.('ready'),
     // We're a full-pane editor (area: "editor-editor"): our own layout
     // already fills 100% of the iframe and scrolls internally via
-    // CodeMirror's own scroller, so we don't want the host resizing the
-    // iframe to fit all content. Returning a real scrollHeight-based value
-    // here caused notes with real content (but not empty ones) to render
-    // blank on Android -- the mobile app appears to actually apply this
-    // height to the native WebView, unlike desktop/web where it's ignored
-    // for full-pane editors. Returning undefined matches the pattern used
-    // by com.sncommunity.advanced-checklist, an official full-pane-style
-    // editor confirmed working on Android.
+    // CodeMirror's own scroller, so we don't need the host to resize the
+    // iframe to fit content. Returning undefined (rather than a computed
+    // scrollHeight) matches com.sncommunity.advanced-checklist, an official
+    // full-pane-style editor confirmed working on Android. This was tried
+    // as a fix for the Android blank-note bug; it wasn't the actual cause
+    // (see the postMessage patch below for that), but it's still the
+    // simpler, more correct choice for this component's layout, so it stays.
     handleRequestForContentHeight: () => undefined,
   })
   onDiag?.('constructed')
