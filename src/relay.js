@@ -1,5 +1,31 @@
 import ComponentRelay from '@standardnotes/component-relay'
 
+// Patches a real bug in @standardnotes/component-relay@2.2.2 (the latest
+// version published to npm as of writing). Its postMessage() does:
+//   this.contentWindow.parent.postMessage(payload, this.component.origin)
+// with no fallback. this.component.origin is set from the *first* incoming
+// message's event.origin -- and on Android, the host app's reported origin
+// is the literal string "null" (it's loaded in a WebView, not served over a
+// real https:// origin the way desktop/web are). Passing the string "null"
+// as postMessage's targetOrigin throws a synchronous, uncaught
+// "Invalid target origin 'null'" SyntaxError -- confirmed via this
+// project's own diagnostic trace. That exception aborts onReady() partway
+// through (including the queued streamContextItem flush inside it), which
+// is why the host <-> component handshake silently never completes on
+// Android: every outgoing message, including the very first one, throws.
+//
+// The upstream GitHub repo has since fixed this (falls back to '*' when
+// origin is falsy or the string "null"), but that fix has never been
+// published to npm -- 2.2.2 is still the newest available version. Patch
+// the one broken method in place until a fixed version ships.
+const originalPostMessage = ComponentRelay.prototype.postMessage
+ComponentRelay.prototype.postMessage = function patchedPostMessage(...args) {
+  if (!this.component.origin || this.component.origin === 'null') {
+    this.component.origin = '*'
+  }
+  return originalPostMessage.apply(this, args)
+}
+
 const STANDALONE_STORAGE_KEY = 'sn-bujo-standalone-note'
 
 const SAMPLE_NOTE = `THU 13 AUG 2026
@@ -96,26 +122,17 @@ export function connect({ onNote, onSpellcheck, onSaveStatus, onDiag }) {
         onDiag?.('save-skipped-no-note')
         return
       }
-      // Deliberately not saveItemWithPresave, which always debounces
-      // (coallesedSavingDelay, 250ms by default) with no way to opt out.
-      // component-relay's own streamContextItem only flushes a pending
-      // debounced save early when it lives long enough to see the *next*
-      // context-item message -- if the host tears the iframe down on
-      // navigation before that message and before the debounce timer
-      // fires, the pending setTimeout is destroyed with it and the save
-      // never reaches the host at all. skipDebouncer sends every edit
-      // immediately instead, trading a bit of message-passing efficiency
-      // for not losing content.
+      // Standard debounced save (matches com.sncommunity.advanced-checklist,
+      // confirmed working on Android). An earlier version of this code
+      // bypassed the debouncer, suspecting it of losing saves on
+      // navigation-triggered teardown -- that turned out not to be the
+      // actual bug (see the postMessage patch above for the real one), and
+      // skipping it just meant a new save-history entry on every keystroke.
       onSaveStatus?.('saving')
-      relay.saveItems(
-        [capturedNote],
-        () => onSaveStatus?.('saved'),
-        true,
-        () => {
-          capturedNote.content.text = text
-          capturedNote.content.preview_plain = buildPreview(text)
-        }
-      )
+      relay.saveItemWithPresave(capturedNote, () => {
+        capturedNote.content.text = text
+        capturedNote.content.preview_plain = buildPreview(text)
+      }, () => onSaveStatus?.('saved'))
     },
   }
 }

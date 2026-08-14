@@ -19,11 +19,17 @@ function showSaveStatus(status) {
 // Rolling trace of connection/handshake milestones, so it's visible on
 // screen exactly how far the host <-> component connection got, without
 // needing devtools/remote debugging. Whatever stage never appears is where
-// it broke.
+// it broke. Stays hidden during normal operation and only reveals itself
+// once something has actually gone wrong, so it doesn't clutter the editor
+// day to day.
 const diagStages = []
 function showDiag(stage) {
   diagStages.push(stage)
-  if (diagEl) diagEl.textContent = diagStages.join(' > ')
+  if (!diagEl) return
+  diagEl.textContent = diagStages.join(' > ')
+  if (stage.startsWith('error:') || stage.startsWith('rejection:')) {
+    diagEl.hidden = false
+  }
 }
 
 // Same reasoning: surface uncaught errors directly on screen, since devtools
