@@ -22,6 +22,14 @@ const repo = process.env.GITHUB_REPOSITORY ?? `jpgill86/${pkg.name}`
 const tag = process.env.GITHUB_REF_NAME ?? `v${pkg.version}`
 const downloadUrl = `https://github.com/${repo}/releases/download/${tag}/sn-bujo-dist.zip`
 
+// Deliberately no "note_type" field. The Standard Notes app's editor-resolution
+// logic (EditorForNoteUseCase.execute) special-cases note_type "plain-text"
+// (and "super") to always render the *native* editor for that type, ignoring
+// editorIdentifier entirely. Declaring note_type: "plain-text" here made
+// "Change Note Type" -> Bullet Journal silently revert to Plain Text on
+// existing notes, even though editorIdentifier was set correctly. Omitting
+// note_type leaves the note's noteType "unknown", which correctly falls
+// through to editorIdentifier-based resolution instead.
 const manifest = {
   identifier: pkg.sn.identifier,
   name: pkg.sn.name,
@@ -32,7 +40,6 @@ const manifest = {
   download_url: downloadUrl,
   latest_url: manifestUrl,
   file_type: pkg.sn.file_type,
-  note_type: pkg.sn.note_type,
   spellcheckControl: pkg.sn.spellcheckControl,
   description: pkg.sn.description,
 }

@@ -1,6 +1,6 @@
 {
   "name": "sn-bujo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Standard Notes editor with syntax highlighting for bullet-journal style plain text notes.",
   "private": true,
   "license": "MIT",
@@ -23,7 +23,6 @@
     "area": "editor-editor",
     "main": "index.html",
     "file_type": "txt",
-    "note_type": "plain-text",
     "spellcheckControl": true,
     "showInGallery": true,
     "description": "A minimal, plain-text-preserving editor with syntax highlighting for daily bullet-journal notes: subtle timestamps, bold color-coded bullets, normal item text."
