@@ -6,13 +6,29 @@ const parent = document.getElementById('editor')
 const statusEl = document.getElementById('save-status')
 const diagEl = document.getElementById('diag-status')
 
+// Shown only while relevant: appears for a save in flight, then a brief
+// "Saved" confirmation, then hides itself. Not fully redundant with the
+// host's own sync indicator -- that reflects host-level sync status, not
+// specifically whether our own save round-trip to the host succeeded. It's
+// exactly that gap that made the Android bug invisible for a long time.
+let hideSaveStatusTimeout = null
 function showSaveStatus(status) {
   if (!statusEl) return
+  if (hideSaveStatusTimeout) {
+    clearTimeout(hideSaveStatusTimeout)
+    hideSaveStatusTimeout = null
+  }
   if (status === 'saving') {
+    statusEl.hidden = false
     statusEl.textContent = 'Saving…'
   } else if (status === 'saved') {
+    statusEl.hidden = false
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     statusEl.textContent = `Saved ${time}`
+    hideSaveStatusTimeout = setTimeout(() => {
+      statusEl.hidden = true
+      hideSaveStatusTimeout = null
+    }, 2000)
   }
 }
 

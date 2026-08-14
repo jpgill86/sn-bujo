@@ -118,9 +118,11 @@ One-time setup: in the repo's Settings → Pages, set Source to "GitHub Actions"
 
 Two small, unobtrusive readouts live at the bottom of the editor:
 
-- **Save status** (bottom-right) — always visible: "Saving…" while an edit is in flight, then
-  "Saved HH:MM:SS" once the host confirms it. A quick sanity check that edits are actually
-  reaching the host, not just displayed locally.
+- **Save status** (bottom-right) — appears only while relevant: "Saving…" while an edit is in
+  flight, then "Saved HH:MM:SS" once the host confirms it, then hides itself again after ~2s. A
+  quick sanity check that edits are actually reaching the host, not just displayed locally — this
+  is a stronger signal than the app's own sync indicator, which reflects host-level sync status
+  rather than specifically whether *this* plugin's save round-trip to the host succeeded.
 - **Connection trace** (bottom-left) — hidden by default. It records each host↔component
   handshake milestone as it happens and only reveals itself if something goes wrong: a thrown
   error, or no sign of life from the host within a few seconds (some failures — see
