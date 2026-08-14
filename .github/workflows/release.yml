@@ -1,0 +1,61 @@
+name: Release
+
+# Triggered by pushing a tag like "v0.1.0" (must match the "version" in
+# package.json — see README "Releasing a new version").
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # to create the GitHub Release and upload the zip asset
+  pages: write # to deploy to GitHub Pages
+  id-token: write # required by actions/deploy-pages
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      # The desktop app's offline install expects a zip with index.html
+      # (or "sn.main") at its root and a package.json containing at least
+      # "version". Reuse the repo's package.json, which already has both
+      # "version" and the "sn" manifest block.
+      - name: Package desktop install zip
+        run: |
+          cp package.json dist/package.json
+          cd dist
+          zip -r ../sn-bujo-dist.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sn-bujo-dist.zip
+          generate_release_notes: true
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy-pages:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

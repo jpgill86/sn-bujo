@@ -1,0 +1,95 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff));
+  color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
+}
+
+#editor {
+  height: 100%;
+}
+
+.cm-editor {
+  height: 100%;
+  font-family: var(
+    --sn-stylekit-monospace-font,
+    'Ubuntu Mono',
+    courier,
+    monospace
+  );
+  font-size: var(--sn-stylekit-font-size-editor, 1.21rem);
+  background: var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff));
+  color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
+}
+
+.cm-editor.cm-focused {
+  outline: none;
+}
+
+.cm-content {
+  padding: 12px 14px;
+}
+
+.cm-scroller {
+  overflow: auto;
+  font-family: inherit;
+}
+
+/* --- bullet journal tokens --- */
+
+.cm-bujo-timestamp {
+  color: var(--sn-stylekit-grey-1, #72767e);
+}
+
+.cm-bujo-timestamp-approx {
+  opacity: 0.75;
+}
+
+.cm-bujo-header {
+  font-weight: 700;
+  color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
+}
+
+.cm-bujo-bullet {
+  font-weight: 700;
+}
+
+.cm-bujo-bullet-note {
+  color: var(--sn-stylekit-accessory-tint-color-1, #086dd6);
+}
+
+.cm-bujo-bullet-event {
+  color: var(--sn-stylekit-accessory-tint-color-3, #ebad00);
+}
+
+.cm-bujo-bullet-task-open {
+  color: var(--sn-stylekit-grey-1, #72767e);
+}
+
+.cm-bujo-bullet-task-doing {
+  color: var(--sn-stylekit-warning-color, #f6a200);
+}
+
+.cm-bujo-bullet-task-done {
+  color: var(--sn-stylekit-success-color, #2b9612);
+}
+
+.cm-bujo-bullet-game {
+  color: var(--sn-stylekit-accessory-tint-color-4, #7049cf);
+}
+
+.cm-bujo-bullet-watch {
+  color: var(--sn-stylekit-accessory-tint-color-2, #ea6595);
+}
+
+.cm-bujo-bullet-read {
+  color: var(--sn-stylekit-accessory-tint-color-6, #f28c52);
+}
+
+.cm-bujo-bullet-unknown {
+  color: var(--sn-stylekit-info-color, #086dd6);
+}

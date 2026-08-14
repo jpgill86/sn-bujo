@@ -1,0 +1,41 @@
+{
+  "name": "sn-bujo",
+  "version": "0.1.0",
+  "description": "A Standard Notes editor with syntax highlighting for bullet-journal style plain text notes.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://jpgill86.github.io/sn-bujo/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jpgill86/sn-bujo.git"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/build-manifest.mjs",
+    "preview": "vite preview --port 8001",
+    "test": "vitest run"
+  },
+  "sn": {
+    "identifier": "org.jpgill86.bujo",
+    "name": "Bullet Journal",
+    "content_type": "SN|Component",
+    "area": "editor-editor",
+    "main": "index.html",
+    "file_type": "txt",
+    "note_type": "plain-text",
+    "spellcheckControl": true,
+    "showInGallery": true,
+    "description": "A minimal, plain-text-preserving editor with syntax highlighting for daily bullet-journal notes: subtle timestamps, bold color-coded bullets, normal item text."
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.7.1",
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.35.0",
+    "@standardnotes/component-relay": "^2.2.2"
+  },
+  "devDependencies": {
+    "vite": "^6.4.3",
+    "vitest": "^3.2.7"
+  }
+}
