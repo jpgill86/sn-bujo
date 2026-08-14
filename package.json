@@ -1,6 +1,6 @@
 {
   "name": "sn-bujo",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "A Standard Notes editor with syntax highlighting for bullet-journal style plain text notes.",
   "private": true,
   "license": "MIT",

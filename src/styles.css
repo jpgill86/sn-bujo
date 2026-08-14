@@ -51,10 +51,24 @@ body {
 
 .cm-editor {
   height: 100%;
+  /*
+   * --sn-stylekit-monospace-font has the exact same iframe-boundary problem
+   * as --sn-stylekit-font-size-editor below: only ever defined in the app's
+   * own base stylesheet, never a theme file, so var() here always fell back
+   * to our own guess. That guess ('Ubuntu Mono') didn't match the app's
+   * real default stack, and different fonts have different natural
+   * line-box metrics -- which is what was actually producing a visible
+   * line-height mismatch against Plain Text, not the line-height property
+   * itself. Matched to the app's real desktop default.
+   */
   font-family: var(
     --sn-stylekit-monospace-font,
+    'SFMono-Regular',
+    Consolas,
+    'Liberation Mono',
+    Menlo,
     'Ubuntu Mono',
-    courier,
+    'Courier New',
     monospace
   );
   /*
@@ -68,6 +82,14 @@ body {
    * correctly take precedence.
    */
   font-size: var(--sn-stylekit-font-size-editor, 0.9375rem);
+  /*
+   * Plain Text's default "Editor Line Height" preference is "Normal", which
+   * maps to Tailwind's leading-normal (line-height: 1.5) -- a plain
+   * unitless preference default (PrefDefaults.ts), not a theme-dependent
+   * CSS variable, so there's no iframe-boundary issue here: just match the
+   * number directly.
+   */
+  line-height: 1.5;
   background: var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff));
   color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
 }
