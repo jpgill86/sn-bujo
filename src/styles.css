@@ -79,8 +79,30 @@ body {
   border-left-color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
 }
 
-.cm-content {
-  padding: 20px 24px;
+/*
+ * CodeMirror's own base theme sets .cm-content { padding: 4px 0 }, injected
+ * via a runtime <style> tag that lands after our bundled stylesheet in the
+ * DOM -- same specificity, later source order, so it silently wins over a
+ * plain `.cm-content` rule regardless of what value we give it (the same
+ * issue already hit and fixed for the cursor color above). Compound
+ * selector to beat it regardless of insertion order.
+ *
+ * 15px matches Plain Text's own textarea exactly (.editable { padding: 15px }
+ * in the app's own _editor.scss), so switching a note's type between the two
+ * doesn't shift the text position.
+ */
+.cm-editor .cm-content {
+  padding: 15px;
+}
+
+/*
+ * CodeMirror's .cm-line also carries its own default padding
+ * (0 2px 0 6px), which would stack on top of .cm-content's above and throw
+ * off the pixel-for-pixel match with Plain Text. Zero it out so
+ * .cm-content's 15px is the only padding in play.
+ */
+.cm-editor .cm-line {
+  padding: 0;
 }
 
 .cm-scroller {
