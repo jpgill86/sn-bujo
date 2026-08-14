@@ -102,11 +102,13 @@ function isPlainUnmodifiedClick(event) {
 const DRAG_SLOP_PX = 6
 const DRAG_SLOP_MS = 600
 
-// Tracks the pending mousedown hit between mousedown and click. Module-
-// scoped rather than per-instance is fine here: a mousedown on one editor
-// instance is always immediately followed by its own click (or neither
-// fires), never interleaved with another instance's events.
-let pending = null
+// Tracks the pending mousedown/touchstart hit until its paired click/touchend.
+// Module-scoped rather than per-instance is fine here: a mousedown (or
+// touchstart) on one editor instance is always immediately followed by its
+// own click/touchend (or neither fires), never interleaved with another
+// instance's events.
+let pendingMouse = null
+let pendingTouch = null
 
 /**
  * CodeMirror extension: tapping/clicking directly on a task bullet's
@@ -117,12 +119,27 @@ let pending = null
  * focus (and therefore the mobile on-screen keyboard) for a successful tap.
  * The actual mutation happens on the paired click, once we know it wasn't a
  * drag or a multi-click.
+ *
+ * Real touch input additionally gets its own touchstart/touchend pair
+ * (rather than relying solely on the mousedown/click emulation above).
+ * On Android specifically, if the editor already has DOM focus (e.g. the
+ * user dismissed the on-screen keyboard with the back button but the
+ * caret/focus never left the editor), the WebView's native
+ * tap-to-reposition-caret behavior isn't reliably suppressed by
+ * preventDefault() on the *synthesized* mousedown/click -- only the initial
+ * focus grab (when nothing was focused yet) goes through a path our mouse
+ * handlers can intercept. touchend is the event that actually gates that
+ * native behavior, so a successful tap-on-bullet there gets its own
+ * preventDefault() as a more reliable suppressor. Deliberately not
+ * preventing default on touchstart itself: that would also block a
+ * genuine scroll gesture that happens to start on a bullet, before we can
+ * tell a tap from a drag.
  */
 export const taskCycle = [
   flashField,
   EditorView.domEventHandlers({
     mousedown(event, view) {
-      pending = null
+      pendingMouse = null
       if (!isPlainUnmodifiedClick(event)) return false
       if (!view.state.selection.main.empty) return false
       const target = event.target
@@ -132,21 +149,46 @@ export const taskCycle = [
       if (pos == null) return false
       if (!taskBulletAt(view.state, pos)) return false
 
-      pending = { pos, x: event.clientX, y: event.clientY, time: Date.now() }
+      pendingMouse = { pos, x: event.clientX, y: event.clientY, time: Date.now() }
       return true
     },
     click(event, view) {
-      const p = pending
-      pending = null
+      const p = pendingMouse
+      pendingMouse = null
       if (!p) return false
       if (!isPlainUnmodifiedClick(event)) return false
-
-      const dx = event.clientX - p.x
-      const dy = event.clientY - p.y
-      if (Math.hypot(dx, dy) > DRAG_SLOP_PX) return false
-      if (Date.now() - p.time > DRAG_SLOP_MS) return false
+      if (!withinTapSlop(event.clientX - p.x, event.clientY - p.y, Date.now() - p.time)) {
+        return false
+      }
 
       return cycleTaskBulletAt(view, p.pos)
     },
+    touchstart(event, view) {
+      pendingTouch = null
+      if (event.touches.length !== 1) return false
+      if (!view.state.selection.main.empty) return false
+
+      const touch = event.touches[0]
+      pendingTouch = { x: touch.clientX, y: touch.clientY, time: Date.now() }
+      return false // never prevent default here -- would also block scrolling
+    },
+    touchend(event, view) {
+      const p = pendingTouch
+      pendingTouch = null
+      if (!p) return false
+      if (event.touches.length !== 0 || event.changedTouches.length !== 1) return false
+      const touch = event.changedTouches[0]
+      if (!withinTapSlop(touch.clientX - p.x, touch.clientY - p.y, Date.now() - p.time)) {
+        return false
+      }
+
+      const pos = view.posAtCoords({ x: p.x, y: p.y })
+      if (pos == null) return false
+      return cycleTaskBulletAt(view, pos)
+    },
   }),
 ]
+
+function withinTapSlop(dx, dy, dt) {
+  return Math.hypot(dx, dy) <= DRAG_SLOP_PX && dt <= DRAG_SLOP_MS
+}
