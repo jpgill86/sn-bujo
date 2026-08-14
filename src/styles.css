@@ -27,21 +27,26 @@ body {
   font-family: var(--sn-stylekit-monospace-font, 'Ubuntu Mono', courier, monospace);
   font-size: 0.7rem;
   color: var(--sn-stylekit-grey-1, #72767e);
+}
+
+#save-status {
+  bottom: 4px;
   opacity: 0.7;
   pointer-events: none;
   user-select: none;
 }
 
-#save-status {
-  bottom: 4px;
-}
-
 #diag-status {
   bottom: 18px;
   left: 6px;
-  max-width: calc(100vw - 12px);
-  white-space: nowrap;
-  overflow-x: auto;
+  max-height: 30vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff));
+  /* Selectable/scrollable on purpose -- this is where a full error message
+     that's too long for one line needs to be readable and copyable. */
+  user-select: text;
 }
 
 .cm-editor {
