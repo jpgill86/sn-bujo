@@ -19,17 +19,18 @@ function showSaveStatus(status) {
 // Rolling trace of connection/handshake milestones, so it's visible on
 // screen exactly how far the host <-> component connection got, without
 // needing devtools/remote debugging. Whatever stage never appears is where
-// it broke. Stays hidden during normal operation and only reveals itself
-// once something has actually gone wrong, so it doesn't clutter the editor
-// day to day.
+// it broke.
+//
+// NOTE: this is deliberately always visible for now, not just on error.
+// An earlier version hid it unless an 'error:'/'rejection:' stage was
+// recorded, but the postMessage-origin bug this trace helped find has a
+// silent failure mode too (see relay.js) -- no thrown error, just messages
+// quietly going nowhere. Hiding this by default would hide that. Revisit
+// hiding it once behavior has been solid across a few releases.
 const diagStages = []
 function showDiag(stage) {
   diagStages.push(stage)
-  if (!diagEl) return
-  diagEl.textContent = diagStages.join(' > ')
-  if (stage.startsWith('error:') || stage.startsWith('rejection:')) {
-    diagEl.hidden = false
-  }
+  if (diagEl) diagEl.textContent = diagStages.join(' > ')
 }
 
 // Same reasoning: surface uncaught errors directly on screen, since devtools

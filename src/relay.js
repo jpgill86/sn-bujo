@@ -18,12 +18,29 @@ import ComponentRelay from '@standardnotes/component-relay'
 // origin is falsy or the string "null"), but that fix has never been
 // published to npm -- 2.2.2 is still the newest available version. Patch
 // the one broken method in place until a fixed version ships.
+//
+// IMPORTANT: this.component.origin isn't only read by postMessage() -- the
+// library's own incoming-message handler also compares every future
+// message's event.origin against this same stored value and silently
+// drops anything that doesn't match. A first version of this patch
+// permanently overwrote this.component.origin to '*' the first time it saw
+// a bad value, which fixed the immediate crash but then broke all
+// subsequent *incoming* messages, since a real event.origin never equals
+// the literal string '*'. That's a silent failure with no thrown error --
+// worse than the crash it replaced. This version only substitutes the
+// corrected value for the duration of the single outgoing call, then
+// restores the original (even if that original is "null") immediately
+// after, so incoming-message matching keeps working correctly.
 const originalPostMessage = ComponentRelay.prototype.postMessage
 ComponentRelay.prototype.postMessage = function patchedPostMessage(...args) {
-  if (!this.component.origin || this.component.origin === 'null') {
-    this.component.origin = '*'
+  const realOrigin = this.component.origin
+  const needsFallback = !realOrigin || realOrigin === 'null'
+  if (needsFallback) this.component.origin = '*'
+  try {
+    return originalPostMessage.apply(this, args)
+  } finally {
+    if (needsFallback) this.component.origin = realOrigin
   }
-  return originalPostMessage.apply(this, args)
 }
 
 const STANDALONE_STORAGE_KEY = 'sn-bujo-standalone-note'
