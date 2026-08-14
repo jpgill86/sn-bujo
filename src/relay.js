@@ -36,10 +36,10 @@ function buildPreview(text) {
  * a localStorage-backed standalone mode so the editor is testable with no
  * app involved.
  *
- * @param {{onNote: (text: string) => void, onSpellcheck: (enabled: boolean) => void}} handlers
+ * @param {{onNote: (text: string) => void, onSpellcheck: (enabled: boolean) => void, onThemesChange?: () => void}} handlers
  * @returns {{ save: (text: string) => void }}
  */
-export function connect({ onNote, onSpellcheck }) {
+export function connect({ onNote, onSpellcheck, onThemesChange }) {
   const isStandalone = window.parent === window
 
   if (isStandalone) {
@@ -59,6 +59,7 @@ export function connect({ onNote, onSpellcheck }) {
     targetWindow: window,
     onReady: () => {},
     handleRequestForContentHeight: () => document.body.scrollHeight + 50,
+    onThemesChange,
     options: { coallesedSaving: true, coallesedSavingDelay: 250 },
   })
 

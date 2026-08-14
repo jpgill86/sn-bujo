@@ -30,6 +30,19 @@ body {
   outline: none;
 }
 
+/*
+ * CodeMirror's drawSelection() extension hardcodes the cursor to
+ * `border-left: 1.2px solid black` unless the editor is given CodeMirror's
+ * own "dark" theme flag (which we don't use, since we follow the SN theme
+ * instead). Without this override the cursor is invisible against a dark
+ * background. Specificity bumped (compound selector) to beat CodeMirror's
+ * own injected stylesheet regardless of DOM insertion order.
+ */
+.cm-editor .cm-cursor,
+.cm-editor .cm-dropCursor {
+  border-left-color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
+}
+
 .cm-content {
   padding: 12px 14px;
 }

@@ -50,5 +50,19 @@ export function createEditor({ parent, doc, onChange, spellcheck = true }) {
         ),
       })
     },
+    /**
+     * Force a style recalculation and remeasure. Standard Notes swaps the
+     * active theme's <link> stylesheet live while our iframe stays mounted;
+     * in some hosts the CSS custom-property changes this produces (our
+     * colors, which are all `var(--sn-stylekit-*)`) don't visibly repaint
+     * until something forces a reflow. Call this from the host's
+     * onThemesChange notification.
+     */
+    refreshForThemeChange() {
+      // Reading a layout property forces the browser to flush any pending
+      // style recalculation immediately rather than on the next paint.
+      void view.dom.offsetHeight
+      view.requestMeasure()
+    },
   }
 }
