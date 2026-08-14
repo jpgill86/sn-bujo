@@ -2,6 +2,7 @@ import { EditorState, Compartment, Annotation } from '@codemirror/state'
 import { EditorView, keymap, drawSelection } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { bujoHighlight } from './decorate.js'
+import { taskCycle } from './cycle.js'
 
 const spellcheckCompartment = new Compartment()
 
@@ -32,6 +33,7 @@ export function createEditor({ parent, doc, onChange, spellcheck = true }) {
       EditorState.tabSize.of(2),
       spellcheckCompartment.of(EditorView.contentAttributes.of({ spellcheck: String(spellcheck) })),
       bujoHighlight,
+      taskCycle,
       EditorView.updateListener.of((update) => {
         const isRemote = update.transactions.some((tr) => tr.annotation(remoteUpdate))
         if (update.docChanged && !isRemote) {

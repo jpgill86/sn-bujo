@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseLine, BULLETS } from '../src/bujo.js'
+import { parseLine, BULLETS, nextTaskBullet } from '../src/bujo.js'
 
 function bulletChar(line) {
   const p = parseLine(line)
@@ -184,5 +184,29 @@ describe('parseLine', () => {
       const timestamped = lines.filter((l) => parseLine(l).timestamp)
       expect(timestamped).toHaveLength(6)
     })
+  })
+})
+
+describe('nextTaskBullet', () => {
+  it('cycles through the full task lifecycle in order', () => {
+    expect(nextTaskBullet('.')).toBe('/')
+    expect(nextTaskBullet('/')).toBe('X')
+    expect(nextTaskBullet('X')).toBe('>')
+    expect(nextTaskBullet('>')).toBe('<')
+  })
+
+  it('wraps from scheduled back to open', () => {
+    expect(nextTaskBullet('<')).toBe('.')
+  })
+
+  it('returns null for every non-task bullet', () => {
+    for (const ch of ['-', 'o', '=', 'G', 'W', 'R']) {
+      expect(nextTaskBullet(ch)).toBeNull()
+    }
+  })
+
+  it('returns null for a character that is not a bullet at all', () => {
+    expect(nextTaskBullet('Q')).toBeNull()
+    expect(nextTaskBullet(' ')).toBeNull()
   })
 })

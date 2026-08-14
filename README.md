@@ -2,9 +2,10 @@
 
 A custom [Standard Notes](https://standardnotes.com) editor for daily bullet-journal style plain
 text notes. It adds syntax highlighting — subtle timestamps, bold color-coded bullets, normal item
-text — while keeping the note's underlying storage **exactly the plain text you typed**. There is no
-hidden markup: you can switch a note back to the built-in Plain Text editor at any time and see the
-identical text, and exporting a note produces a clean `.txt` file.
+text — and lets you tap a task bullet to cycle its state, while keeping the note's underlying
+storage **exactly the plain text you typed**. There is no hidden markup: you can switch a note
+back to the built-in Plain Text editor at any time and see the identical text, and exporting a
+note produces a clean `.txt` file.
 
 > This project is not affiliated with, endorsed by, or sponsored by the Bullet Journal brand or its
 > creator. "Bullet journal" here refers to the generic journaling method.
@@ -54,6 +55,14 @@ THU 13 AUG 2026
   Bullets are rendered bold, each in its own color. Any other single punctuation character, or a
   single uppercase letter (other than `A`/`I`, so ordinary sentences aren't misread), is still
   highlighted as a bullet — so inventing a new bullet type just works without editing the plugin.
+- **Tap-to-cycle** — tapping/clicking directly on one of the five task bullets (`.` `/` `X` `>`
+  `<`) advances it to the next state in that order, wrapping from `<` back to `.`. A brief flash
+  confirms the change. This is the only interactive behavior in the editor; every other bullet is
+  inert when tapped, and everywhere else the document behaves exactly like plain text — arrow
+  keys, Backspace, selection, and typing all work on the bullet character normally, since it's
+  never anything but an ordinary character in the underlying text. See
+  [`src/cycle.js`](src/cycle.js) for the implementation and the guards against accidental taps
+  (right-click, drag, double-click, an active selection, etc.).
 - **Header** — an unindented line naming a day of the week and containing a 4-digit year (e.g.
   `THU 13 AUG 2026`) is rendered in bold as a date header.
 - Everything else — indentation, item text, blank lines — is left as ordinary text, untouched.
@@ -135,11 +144,6 @@ The editor reads and writes only `note.content.text` (plus `note.content.preview
 notes-list preview snippet) — it never introduces a wrapper format, and the note's `file_type` is
 declared as `txt` in the manifest. Toggling a note between this editor and Plain Text is always
 lossless.
-
-## Roadmap
-
-This first pass is highlighting only. A planned follow-up: click a `.` bullet to cycle it through
-`/` → `X` directly in the editor.
 
 ## License
 

@@ -172,3 +172,43 @@ body {
 .cm-bujo-bullet-unknown {
   color: var(--sn-stylekit-info-color, #086dd6);
 }
+
+/*
+ * Tap-to-cycle: only these five bullets (the task lifecycle) are cyclable
+ * (see src/cycle.js). `position: relative` + an absolutely-positioned
+ * `::after` expand the tappable area a few px beyond the glyph without
+ * shifting any text -- the pseudo-element can't itself be an event target,
+ * so a click inside it is still reported with the bullet span as
+ * `event.target`, which is exactly what src/cycle.js's hit test expects.
+ */
+.cm-bujo-bullet-task-open,
+.cm-bujo-bullet-task-doing,
+.cm-bujo-bullet-task-done,
+.cm-bujo-bullet-task-migrated,
+.cm-bujo-bullet-task-scheduled {
+  position: relative;
+  cursor: pointer;
+  transition: background-color 200ms ease-out;
+}
+
+.cm-bujo-bullet-task-open::after,
+.cm-bujo-bullet-task-doing::after,
+.cm-bujo-bullet-task-done::after,
+.cm-bujo-bullet-task-migrated::after,
+.cm-bujo-bullet-task-scheduled::after {
+  content: '';
+  position: absolute;
+  /* Mostly horizontal: a taller box would start stealing taps meant for the
+     line above/below. */
+  inset: -2px -5px;
+}
+
+/*
+ * Brief flash on a successful cycle -- the color change alone (the bullet's
+ * class, and therefore its color, already changes) can be easy to miss,
+ * especially for an accidental tap. Added/removed by src/cycle.js; the
+ * transition above on the base classes handles the fade in both directions.
+ */
+.cm-bujo-bullet-flash {
+  background-color: var(--sn-stylekit-info-color, #086dd6);
+}

@@ -21,6 +21,18 @@ export const BULLETS = {
   R: 'read',
 }
 
+// The task-lifecycle cycle order for tap-to-cycle: open -> doing -> done ->
+// migrated -> scheduled -> open. Only these five bullets are cyclable; every
+// other bullet (note, event, feeling, game, watch, read, unknown) is inert
+// when tapped.
+export const TASK_CYCLE = ['.', '/', 'X', '>', '<']
+
+/** Next state for a task bullet character, or null if `ch` isn't cyclable. */
+export function nextTaskBullet(ch) {
+  const i = TASK_CYCLE.indexOf(ch)
+  return i === -1 ? null : TASK_CYCLE[(i + 1) % TASK_CYCLE.length]
+}
+
 const TIMESTAMP_RE = /^~?\d{1,2}:\d{2}(\s?[ap]m)?/i
 const HEADER_RE = /^(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?,?\s+.*\d{4}\s*$/i
 
