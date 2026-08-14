@@ -46,17 +46,38 @@ describe('taskBulletAt', () => {
     expect(hit).toEqual({ from: bulletPos, to: bulletPos + 1, ch: '/', next: 'X' })
   })
 
-  it('returns null for a position just before the bullet', () => {
+  it('returns null for a position clearly before the bullet (not just its boundary)', () => {
     const doc = '  . laundry'
     const state = EditorState.create({ doc })
     const bulletPos = doc.indexOf('.')
     expect(taskBulletAt(state, bulletPos - 1)).toBeNull()
   })
 
-  it('returns null for a position just after the bullet', () => {
+  it('returns null for a position clearly after the bullet (not just its boundary)', () => {
     const doc = '. laundry'
     const state = EditorState.create({ doc })
-    expect(taskBulletAt(state, 1)).toBeNull()
+    // pos 2 is inside the following space character -- one more than the
+    // boundary immediately after the bullet (pos 1, covered below).
+    expect(taskBulletAt(state, 2)).toBeNull()
+  })
+
+  it('resolves at the boundary position immediately before the bullet', () => {
+    // Matches the "from" end of the expanded CSS hit area (styles.css):
+    // posAtCoords() resolves a click just left of the glyph to this exact
+    // boundary position.
+    const state = EditorState.create({ doc: '. laundry' })
+    expect(taskBulletAt(state, 0)).not.toBeNull()
+  })
+
+  it('resolves at the boundary position immediately after the bullet', () => {
+    // Matches the "to" end of the expanded CSS hit area (styles.css):
+    // posAtCoords() resolves a click just right of the glyph to this exact
+    // boundary position. Regression coverage for a real bug: the original
+    // strict `pos < to` upper bound made the right side of the expanded hit
+    // area silently inert while the left side worked, since `pos >= from`
+    // already happened to include its own boundary.
+    const state = EditorState.create({ doc: '. laundry' })
+    expect(taskBulletAt(state, 1)).toEqual({ from: 0, to: 1, ch: '.', next: '/' })
   })
 
   it('returns null for a non-task bullet', () => {

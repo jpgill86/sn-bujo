@@ -16,6 +16,15 @@ const FLASH_MS = 300
  * Resolve the task bullet (if any) at document position `pos`.
  * Returns null if there's no bullet there, or the bullet there isn't one of
  * the five cyclable task states.
+ *
+ * `pos` is accepted at either boundary of the bullet's single character
+ * (from *or* to), not just strictly inside it. This matters because of the
+ * expanded CSS hit area (see styles.css): posAtCoords() resolves a click
+ * just left of the glyph to `from` and a click just right of it to `to` --
+ * both boundary positions, symmetric with each other. A strict `pos < to`
+ * upper bound would silently make the right side of the expanded hit area
+ * inert (falls through to normal cursor placement) while the left side
+ * worked, since `pos >= from` already happens to include its boundary.
  */
 export function taskBulletAt(state, pos) {
   const line = state.doc.lineAt(pos)
@@ -24,7 +33,7 @@ export function taskBulletAt(state, pos) {
 
   const from = line.from + parsed.bullet.from
   const to = line.from + parsed.bullet.to
-  if (pos < from || pos >= to) return null
+  if (pos < from || pos > to) return null
 
   const ch = line.text[parsed.bullet.from]
   const next = nextTaskBullet(ch)
