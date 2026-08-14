@@ -87,7 +87,8 @@ body {
    * maps to Tailwind's leading-normal (line-height: 1.5) -- a plain
    * unitless preference default (PrefDefaults.ts), not a theme-dependent
    * CSS variable, so there's no iframe-boundary issue here: just match the
-   * number directly.
+   * number directly. NOTE: setting it here alone doesn't actually work --
+   * see the .cm-scroller override below, which is what really controls it.
    */
   line-height: 1.5;
   background: var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff));
@@ -143,9 +144,20 @@ body {
   padding: 0;
 }
 
-.cm-scroller {
+/*
+ * CodeMirror's own base theme sets `.cm-scroller { line-height: 1.4 }`
+ * directly (not inherited from .cm-editor), injected via the same
+ * runtime <style> tag responsible for the .cm-content padding and
+ * .cm-cursor color bugs above. Because it's a direct declaration on this
+ * element (not inherited), the `line-height: 1.5` set on .cm-editor above
+ * never actually reaches rendered lines -- this is the rule that does.
+ * Compound selector to reliably beat CodeMirror's same-specificity rule
+ * regardless of DOM insertion order.
+ */
+.cm-editor .cm-scroller {
   overflow: auto;
   font-family: inherit;
+  line-height: 1.5;
 }
 
 /* --- bullet journal tokens --- */
