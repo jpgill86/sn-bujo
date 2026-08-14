@@ -22,6 +22,9 @@ THU 13 AUG 2026
          / prep dinner
          G video games
          . laundry
+         > reschedule taxes
+         < plan vacation
+         = feeling accomplished
          W favorite show
          R favorite book
   22:30  - in bed
@@ -30,7 +33,8 @@ THU 13 AUG 2026
 ```
 
 - **Timestamps** — `HH:MM`, optionally 12-hour with `am`/`pm`, optionally prefixed with `~` to mark
-  it as approximate. Rendered in a subtle gray.
+  it as approximate. Rendered in a subtle gray — exact and approximate timestamps look identical;
+  the `~` in the text already says "approximate," so there's no separate visual treatment.
 - **Bullets** — a single character followed by a space (or end of line):
 
   | bullet | meaning |
@@ -40,6 +44,9 @@ THU 13 AUG 2026
   | `.` | task, not started |
   | `/` | task, in progress |
   | `X` | task, done |
+  | `>` | task, migrated (moved to a later date) |
+  | `<` | task, scheduled (moved earlier, e.g. to a future log) |
+  | `=` | feeling |
   | `G` | gaming session |
   | `W` | watching (movie/TV) |
   | `R` | reading session |

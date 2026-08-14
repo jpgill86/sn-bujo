@@ -55,6 +55,9 @@ const SAMPLE_NOTE = `THU 13 AUG 2026
          / prep dinner
          G video games
          . laundry
+         > reschedule taxes
+         < plan vacation
+         = feeling accomplished
          W favorite show
          R favorite book
   22:30  - in bed

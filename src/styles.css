@@ -94,10 +94,6 @@ body {
   color: var(--sn-stylekit-grey-1, #72767e);
 }
 
-.cm-bujo-timestamp-approx {
-  opacity: 0.75;
-}
-
 .cm-bujo-header {
   font-weight: 700;
   color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
@@ -125,6 +121,18 @@ body {
 
 .cm-bujo-bullet-task-done {
   color: var(--sn-stylekit-success-color, #2b9612);
+}
+
+.cm-bujo-bullet-task-migrated {
+  color: var(--sn-stylekit-danger-color, #f80324);
+}
+
+.cm-bujo-bullet-task-scheduled {
+  color: var(--sn-stylekit-neutral-color, #989898);
+}
+
+.cm-bujo-bullet-feeling {
+  color: var(--sn-stylekit-accessory-tint-color-5, #1aa772);
 }
 
 .cm-bujo-bullet-game {

@@ -16,13 +16,14 @@ function buildDecorations(view) {
       }
 
       if (parsed.timestamp) {
-        const cls = parsed.timestamp.approx
-          ? 'cm-bujo-timestamp cm-bujo-timestamp-approx'
-          : 'cm-bujo-timestamp'
+        // Exact and approximate (~-prefixed) timestamps get identical
+        // styling -- the tilde itself already conveys "approximate" in the
+        // text, and treating them as different visual cases was more
+        // distinction than the format actually calls for.
         builder.add(
           line.from + parsed.timestamp.from,
           line.from + parsed.timestamp.to,
-          Decoration.mark({ class: cls })
+          Decoration.mark({ class: 'cm-bujo-timestamp' })
         )
       }
 

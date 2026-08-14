@@ -57,6 +57,14 @@ describe('parseLine', () => {
     expect(contentText(line)).toBe('back home')
   })
 
+  it('does not distinguish exact vs. approximate timestamps beyond the approx flag', () => {
+    // The parser still reports approx (bujo.js), but decorate.js gives both
+    // the exact same CSS class -- this just guards the flag itself keeps
+    // working, since the "no visual difference" behavior lives in decorate.js.
+    expect(parseLine('10:00 - exact').timestamp.approx).toBe(false)
+    expect(parseLine('~10:00 - approx').timestamp.approx).toBe(true)
+  })
+
   it('parses a deeply indented continuation bullet with no timestamp', () => {
     const line = '           - a continuation note with no timestamp'
     const p = parseLine(line)
@@ -71,10 +79,13 @@ describe('parseLine', () => {
     expect(parseLine('. laundry').bullet.kind).toBe('task-open')
     expect(parseLine('/ prep dinner').bullet.kind).toBe('task-doing')
     expect(parseLine('X completed').bullet.kind).toBe('task-done')
+    expect(parseLine('> reschedule taxes').bullet.kind).toBe('task-migrated')
+    expect(parseLine('< plan vacation').bullet.kind).toBe('task-scheduled')
+    expect(parseLine('= feeling accomplished').bullet.kind).toBe('feeling')
     expect(parseLine('G video games').bullet.kind).toBe('game')
     expect(parseLine('W favorite show').bullet.kind).toBe('watch')
     expect(parseLine('R favorite book').bullet.kind).toBe('read')
-    expect(Object.keys(BULLETS)).toEqual(['-', 'o', '.', '/', 'X', 'G', 'W', 'R'])
+    expect(Object.keys(BULLETS)).toEqual(['-', 'o', '.', '/', 'X', '>', '<', '=', 'G', 'W', 'R'])
   })
 
   it('treats a bullet with no trailing content as still a bullet', () => {
@@ -139,6 +150,9 @@ describe('parseLine', () => {
          / prep dinner
          G video games
          . laundry
+         > reschedule taxes
+         < plan vacation
+         = feeling accomplished
          W favorite show
          R favorite book
   22:30  - in bed
@@ -163,7 +177,7 @@ describe('parseLine', () => {
 
     it('finds the expected number of bulleted lines', () => {
       const bulleted = lines.filter((l) => parseLine(l).bullet)
-      expect(bulleted).toHaveLength(12)
+      expect(bulleted).toHaveLength(15)
     })
 
     it('finds the expected number of timestamped lines', () => {
