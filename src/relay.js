@@ -36,11 +36,12 @@ function buildPreview(text) {
  * a localStorage-backed standalone mode so the editor is testable with no
  * app involved.
  *
- * @param {{onNote: (text: string) => void, onSpellcheck: (enabled: boolean) => void, onSaveStatus?: (status: 'saving' | 'saved') => void}} handlers
+ * @param {{onNote: (text: string) => void, onSpellcheck: (enabled: boolean) => void, onSaveStatus?: (status: 'saving' | 'saved') => void, onDiag?: (stage: string) => void}} handlers
  * @returns {{ save: (text: string) => void }}
  */
-export function connect({ onNote, onSpellcheck, onSaveStatus }) {
+export function connect({ onNote, onSpellcheck, onSaveStatus, onDiag }) {
   const isStandalone = window.parent === window
+  onDiag?.(isStandalone ? 'standalone' : 'iframe')
 
   if (isStandalone) {
     const stored = window.localStorage.getItem(STANDALONE_STORAGE_KEY)
@@ -59,7 +60,7 @@ export function connect({ onNote, onSpellcheck, onSaveStatus }) {
 
   const relay = new ComponentRelay({
     targetWindow: window,
-    onReady: () => {},
+    onReady: () => onDiag?.('ready'),
     // We're a full-pane editor (area: "editor-editor"): our own layout
     // already fills 100% of the iframe and scrolls internally via
     // CodeMirror's own scroller, so we don't want the host resizing the
@@ -72,19 +73,29 @@ export function connect({ onNote, onSpellcheck, onSaveStatus }) {
     // editor confirmed working on Android.
     handleRequestForContentHeight: () => undefined,
   })
+  onDiag?.('constructed')
 
   relay.streamContextItem((item) => {
+    onDiag?.('item-received')
     note = item
-    if (item.isMetadataUpdate) return
+    if (item.isMetadataUpdate) {
+      onDiag?.('metadata-only')
+      return
+    }
     onNote(item.content.text ?? '')
+    onDiag?.(item.content.text ? 'content-delivered' : 'content-was-empty')
     const spellcheckValue = relay.getItemAppDataValue?.(item, 'spellcheck')
     onSpellcheck(spellcheckValue !== false)
   })
+  onDiag?.('stream-requested')
 
   return {
     save(text) {
       const capturedNote = note
-      if (!capturedNote) return
+      if (!capturedNote) {
+        onDiag?.('save-skipped-no-note')
+        return
+      }
       // Deliberately not saveItemWithPresave, which always debounces
       // (coallesedSavingDelay, 250ms by default) with no way to opt out.
       // component-relay's own streamContextItem only flushes a pending
