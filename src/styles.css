@@ -163,14 +163,39 @@ body {
  * below) makes the selection a genuine tint of the *current* theme's own
  * foreground color rather than an unrelated hardcoded gray, so it stays
  * legible against that same theme's text color in both light and dark
- * themes without a separate branch for either.
+ * themes without a separate branch for either. Defined once as a custom
+ * property so the native-::selection fallback right below shares the exact
+ * same color rather than duplicating the expression.
  */
-.cm-editor .cm-selectionBackground {
-  background: color-mix(
+.cm-editor {
+  --bujo-selection-bg: color-mix(
     in srgb,
     var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000)) 35%,
     var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff)) 65%
   );
+}
+
+.cm-editor .cm-selectionBackground {
+  background: var(--bujo-selection-bg);
+}
+
+/*
+ * On Android, Chrome uses the EditContext API for text input (CodeMirror
+ * opts into it there specifically to fix a Samsung Keyboard
+ * autocomplete/composition bug -- see the release notes for
+ * @codemirror/view 6.36.3). Under EditContext, Android's own native
+ * selection UI (including the drag handles) appears to take over rendering
+ * the highlight entirely, bypassing drawSelection()'s custom
+ * .cm-selectionBackground layer above -- so that fix alone didn't help on
+ * Android even though it fixed desktop. CodeMirror's own hideNativeSelection
+ * theme sets `.cm-line ::selection` to transparent with !important
+ * specifically to suppress native selection in favor of its own layer; this
+ * overrides that back on, matching the same tinted color, in case native
+ * selection is still what actually renders in this mode. Needs !important
+ * to have any chance against CodeMirror's own !important rule.
+ */
+.cm-editor .cm-line ::selection {
+  background: var(--bujo-selection-bg) !important;
 }
 
 /*
