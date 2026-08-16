@@ -7,10 +7,67 @@ body {
 body {
   background: var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff));
   color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
+  /* #toolbar sits above #editor and takes its own height; #editor fills the
+     rest and must be allowed to shrink below its content height (min-height:
+     0) or CodeMirror's internal scroller stops scrolling and the toolbar
+     gets pushed off-screen by a long note instead. */
+  display: flex;
+  flex-direction: column;
 }
 
 #editor {
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/*
+ * Undo/Redo toolbar (src/toolbar.js). Always visible -- Ctrl+Z/Ctrl+Y still
+ * work on desktop, but this is the only undo mechanism at all on Android,
+ * where the on-screen keyboard has no undo key. That matters most as the
+ * safety net for tap-to-cycle: an accidental tap silently changes a task's
+ * state, and mobile is exactly where accidental taps happen.
+ */
+#toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-bottom: 1px solid var(--sn-stylekit-border-color, #e3e3e3);
+}
+
+#toolbar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000));
+  cursor: pointer;
+  /* Mobile-specific: a plain <button> otherwise gets a ~300ms tap delay
+     (touch-action), a gray flash on tap (-webkit-tap-highlight-color), and
+     is selectable on long-press (user-select) -- none of which read as
+     "toolbar button" on a touch device. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+#toolbar button svg {
+  width: 18px;
+  height: 18px;
+}
+
+#toolbar button:hover:not(:disabled) {
+  background: var(--sn-stylekit-contrast-background-color, rgba(0, 0, 0, 0.06));
+}
+
+#toolbar button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 /*

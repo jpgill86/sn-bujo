@@ -6,6 +6,20 @@
     <title>Bullet Journal</title>
   </head>
   <body>
+    <div id="toolbar" role="toolbar" aria-label="Editor actions">
+      <button type="button" id="undo-btn" title="Undo" aria-label="Undo" disabled>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <polyline points="7 5 3 9 7 13"></polyline>
+          <path d="M3 9 H10 A6 6 0 0 1 16 15 V17"></path>
+        </svg>
+      </button>
+      <button type="button" id="redo-btn" title="Redo" aria-label="Redo" disabled>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <polyline points="13 5 17 9 13 13"></polyline>
+          <path d="M17 9 H10 A6 6 0 0 0 4 15 V17"></path>
+        </svg>
+      </button>
+    </div>
     <div id="editor"></div>
     <div id="diag-status" aria-live="polite" hidden></div>
     <div id="save-status" aria-live="polite" hidden></div>

@@ -1,10 +1,12 @@
 import { createEditor } from './editor.js'
+import { createToolbar } from './toolbar.js'
 import { connect } from './relay.js'
 import './styles.css'
 
 const parent = document.getElementById('editor')
 const statusEl = document.getElementById('save-status')
 const diagEl = document.getElementById('diag-status')
+const toolbarEl = document.getElementById('toolbar')
 
 // Shown only while relevant: appears for a save in flight, then a brief
 // "Saved" confirmation, then hides itself. Not fully redundant with the
@@ -73,6 +75,7 @@ setTimeout(() => {
 }, 8000)
 
 let bridge = null
+let toolbar = null
 
 const editor = createEditor({
   parent,
@@ -81,7 +84,11 @@ const editor = createEditor({
   onChange: (text) => {
     bridge?.save(text)
   },
+  onUpdate: () => toolbar?.sync(),
 })
+
+toolbar = createToolbar({ container: toolbarEl, view: editor.view })
+toolbar.sync() // initial state: both disabled, no history yet
 
 bridge = connect({
   onNote: (text) => editor.setDoc(text),

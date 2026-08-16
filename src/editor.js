@@ -1,4 +1,4 @@
-import { EditorState, Compartment, Annotation } from '@codemirror/state'
+import { EditorState, Compartment, Annotation, Transaction } from '@codemirror/state'
 import { EditorView, keymap, drawSelection } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap, indentWithTab, deleteCharBackwardStrict } from '@codemirror/commands'
 import { bujoHighlight } from './decorate.js'
@@ -22,7 +22,7 @@ const remoteUpdate = Annotation.define()
  * Create a CodeMirror editor bound to `parent`, calling `onChange(docText)`
  * whenever the user edits the document (not when we programmatically set it).
  */
-export function createEditor({ parent, doc, onChange, spellcheck = true }) {
+export function createEditor({ parent, doc, onChange, onUpdate, spellcheck = true }) {
   const state = EditorState.create({
     doc,
     extensions: [
@@ -51,6 +51,12 @@ export function createEditor({ parent, doc, onChange, spellcheck = true }) {
         if (update.docChanged && !isRemote) {
           onChange(update.state.doc.toString())
         }
+        // Fires on every update, not just doc changes -- undo/redo depth
+        // moves on undo/redo transactions themselves (a doc change, but not
+        // one that should be mistaken for new user input) and can also
+        // reset on a remote setDoc, so the toolbar's enabled/disabled state
+        // needs to stay in sync regardless of what kind of update this is.
+        onUpdate?.()
       }),
     ],
   })
@@ -64,7 +70,13 @@ export function createEditor({ parent, doc, onChange, spellcheck = true }) {
       if (view.state.doc.toString() === text) return
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: text },
-        annotations: remoteUpdate.of(true),
+        // Transaction.addToHistory: false keeps this off the undo stack, the
+        // same way remoteUpdate above keeps it out of onChange. Without it,
+        // the very first setDoc -- loading the note's saved content into the
+        // initially-empty editor -- becomes an undo step, so opening a note
+        // ships with Undo already enabled and one tap wipes it back to
+        // empty. Caught via the toolbar's own manual verification pass.
+        annotations: [remoteUpdate.of(true), Transaction.addToHistory.of(false)],
       })
     },
     setSpellcheck(enabled) {

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest'
+import { undoDepth, redoDepth } from '@codemirror/commands'
 import { createEditor } from '../src/editor.js'
 
 // jsdom doesn't implement layout, so CodeMirror's cursor/selection
@@ -85,6 +86,44 @@ describe('createEditor remote vs. local updates', () => {
 
     expect(onChange).not.toHaveBeenCalled()
     expect(editor.view.state.doc.toString()).toBe('important content that must not be lost')
+  })
+
+  it('does not put setDoc updates on the undo stack', () => {
+    // Regression coverage for a real bug caught while building the
+    // Undo/Redo toolbar: without excluding setDoc from history, loading a
+    // note's saved content into the initially-empty editor was itself an
+    // undo step -- Undo was enabled the instant a note opened, and tapping
+    // it wiped the note back to empty.
+    const editor = makeEditor(vi.fn())
+
+    editor.setDoc('loaded from the host')
+    expect(undoDepth(editor.view.state)).toBe(0)
+
+    editor.setDoc('a later remote update')
+    expect(undoDepth(editor.view.state)).toBe(0)
+    expect(redoDepth(editor.view.state)).toBe(0)
+  })
+
+  it('clears prior undo history when a remote update replaces the whole document', () => {
+    // Not a bug introduced by the addToHistory fix above -- setDoc always
+    // does a full 0-to-length replace (there's no diffing against the old
+    // content), so CodeMirror's history can't map an earlier changeset's
+    // positions through it meaningfully and drops it. Documented here as a
+    // known, pre-existing characteristic: an in-flight local edit's undo
+    // step doesn't survive a remote update landing on top of it. In
+    // practice this is a narrow window, since onChange's debounced save
+    // means most edits are already persisted well before another device's
+    // update could arrive.
+    const onChange = vi.fn()
+    const editor = makeEditor(onChange)
+
+    editor.setDoc('start')
+    editor.view.dispatch({ changes: { from: 5, insert: ' plus a local edit' } })
+    expect(undoDepth(editor.view.state)).toBe(1)
+
+    editor.setDoc('a remote change arrives and replaces everything')
+
+    expect(undoDepth(editor.view.state)).toBe(0)
   })
 })
 

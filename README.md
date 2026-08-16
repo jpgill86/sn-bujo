@@ -63,6 +63,11 @@ THU 13 AUG 2026
   never anything but an ordinary character in the underlying text. See
   [`src/cycle.js`](src/cycle.js) for the implementation and the guards against accidental taps
   (right-click, drag, double-click, an active selection, etc.).
+- **Undo/Redo toolbar** — two buttons above the text, always visible. Ctrl+Z/Ctrl+Y still work on
+  desktop, but this is the only undo available at all on Android, where the on-screen keyboard has
+  no undo key — including as the recovery path for an accidental tap-to-cycle. The buttons never
+  steal focus or close the on-screen keyboard, and gray out when there's nothing to undo/redo. See
+  [`src/toolbar.js`](src/toolbar.js).
 - **Header** — an unindented line naming a day of the week and containing a 4-digit year (e.g.
   `THU 13 AUG 2026`) is rendered in bold as a date header. Anything after the date (e.g. `THU 13
   AUG 2026  WEEK 33  SO-AND-SO'S BIRTHDAY`) stays bold but renders in a slightly muted shade —
