@@ -264,23 +264,43 @@ body {
  * toolbar. Display-only -- no characters are added to the document, this is
  * purely a rendered offset on the line box.
  *
- * Deliberately not text-indent: the CodeMirror community settled on
- * border-left + a ::before after finding text-indent interferes with
- * rectangular selection (the left edge grows outside the text when the
- * first rendered line is indented). border-left shifts every wrapped row of
- * the line right by --bujo-indent; the ::before's negative margin then
- * pulls just the first row back to where it started, producing a hang
- * without moving any text on that first row. ch units are exact here since
- * the editor is monospace (.cm-editor's font-family above), so no font-width
- * measurement is needed.
+ * text-indent + matching padding-left: negative text-indent pulls the
+ * line's first (real) row back by --bujo-indent, and padding-left pushes
+ * the whole line (and therefore every wrapped row, first included) forward
+ * by the same amount -- net zero on the first row, full indent on wrapped
+ * continuations. ch units are exact here since the editor is monospace
+ * (.cm-editor's font-family above), so no font-width measurement is needed.
+ *
+ * This was originally a border-left + ::before pseudo-element trick instead
+ * (see git history), switched away from deliberately: a pseudo-element with
+ * a compensating negative margin is a purely visual illusion that doesn't
+ * correspond to any real text position, and on Android, CodeMirror reports
+ * per-character screen coordinates to the OS for native cursor-handle
+ * placement via real DOM Range measurement (view.coordsForChar in
+ * @codemirror/view) -- which the pseudo-element trick was invisible to,
+ * confirmed by a real bug report: tapping anywhere on an indented line's
+ * first row always snapped the native (Android) cursor handle to the start
+ * of the indent, while CodeMirror's own actual cursor and typing position
+ * stayed correct throughout. text-indent is a genuine text-layout property,
+ * not a visual trick, so the same Range-based measurement reports it
+ * correctly without special-casing.
+ *
+ * The known trade-off (why border-left was chosen over text-indent in the
+ * first place): text-indent is documented to interfere with rectangular/
+ * column selection on desktop (Alt-drag), where the selection's left edge
+ * can grow outside the text on an indented line's first row. Accepted as
+ * the lesser issue -- a rare desktop power-user gesture vs. ordinary
+ * tap-to-position on Android.
+ *
+ * Selector is scoped as `.cm-editor .cm-line.cm-bujo-hanging-indent`
+ * (3 classes), not just `.cm-bujo-hanging-indent` (1) -- needs to beat the
+ * `.cm-editor .cm-line { padding: 0 }` rule above (2 classes) on the same
+ * element, or that rule's `padding` shorthand silently zeroes the
+ * padding-left this one sets, regardless of which comes later in the file.
  */
-.cm-bujo-hanging-indent {
-  border-left: var(--bujo-indent) solid transparent;
-}
-
-.cm-bujo-hanging-indent::before {
-  content: '';
-  margin-left: calc(-1 * var(--bujo-indent));
+.cm-editor .cm-line.cm-bujo-hanging-indent {
+  text-indent: calc(-1 * var(--bujo-indent));
+  padding-left: var(--bujo-indent);
 }
 
 .cm-bujo-timestamp {
