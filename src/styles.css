@@ -148,6 +148,32 @@ body {
 }
 
 /*
+ * CodeMirror's drawSelection() extension (used so multi-line/wrapped
+ * selections render as a filled background instead of native selection's
+ * gaps) paints that background using colors hardcoded in its own base theme
+ * for CodeMirror's own "light"/"dark" mode -- a flag we never set, since we
+ * follow the SN theme instead (same root cause as the cursor-color rule
+ * above). That flag defaults to light, so CodeMirror always used its
+ * light-mode gray (#d9d9d9) for the selection background regardless of the
+ * active SN theme -- fine in a light theme, but in a dark theme it landed
+ * almost exactly on top of the light-colored foreground text color,
+ * destroying contrast.
+ *
+ * color-mix() toward the background (same technique as .cm-bujo-header-extra
+ * below) makes the selection a genuine tint of the *current* theme's own
+ * foreground color rather than an unrelated hardcoded gray, so it stays
+ * legible against that same theme's text color in both light and dark
+ * themes without a separate branch for either.
+ */
+.cm-editor .cm-selectionBackground {
+  background: color-mix(
+    in srgb,
+    var(--sn-stylekit-editor-foreground-color, var(--sn-stylekit-foreground-color, #000)) 35%,
+    var(--sn-stylekit-editor-background-color, var(--sn-stylekit-background-color, #fff)) 65%
+  );
+}
+
+/*
  * CodeMirror's own base theme sets .cm-content { padding: 4px 0 }, injected
  * via a runtime <style> tag that lands after our bundled stylesheet in the
  * DOM -- same specificity, later source order, so it silently wins over a
