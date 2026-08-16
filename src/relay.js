@@ -1,4 +1,5 @@
 import ComponentRelay from '@standardnotes/component-relay'
+import { readHangingIndent, writeHangingIndent } from './prefs.js'
 
 // Patches a real bug in @standardnotes/component-relay@2.2.2 (the latest
 // version published to npm as of writing). Its postMessage() does:
@@ -45,6 +46,12 @@ ComponentRelay.prototype.postMessage = function patchedPostMessage(...args) {
 
 const STANDALONE_STORAGE_KEY = 'sn-bujo-standalone-note'
 
+// Key under the component's own persisted data (see setHangingIndentPref
+// below) -- distinct from note content, and distinct from per-note appData
+// like spellcheck. This is a device/editor-level display preference, not
+// something tied to any one note.
+const HANGING_INDENT_DATA_KEY = 'hangingIndent'
+
 const SAMPLE_NOTE = `THU 13 AUG 2026
   06:00  - out of bed
   08:00  - at work
@@ -82,10 +89,10 @@ function buildPreview(text) {
  * a localStorage-backed standalone mode so the editor is testable with no
  * app involved.
  *
- * @param {{onNote: (text: string) => void, onSpellcheck: (enabled: boolean) => void, onSaveStatus?: (status: 'saving' | 'saved') => void, onDiag?: (stage: string) => void}} handlers
- * @returns {{ save: (text: string) => void }}
+ * @param {{onNote: (text: string) => void, onSpellcheck: (enabled: boolean) => void, onHangingIndentPref: (enabled: boolean) => void, onSaveStatus?: (status: 'saving' | 'saved') => void, onDiag?: (stage: string) => void}} handlers
+ * @returns {{ save: (text: string) => void, setHangingIndentPref: (enabled: boolean) => void }}
  */
-export function connect({ onNote, onSpellcheck, onSaveStatus, onDiag }) {
+export function connect({ onNote, onSpellcheck, onHangingIndentPref, onSaveStatus, onDiag }) {
   const isStandalone = window.parent === window
   onDiag?.(isStandalone ? 'standalone' : 'iframe')
 
@@ -93,11 +100,15 @@ export function connect({ onNote, onSpellcheck, onSaveStatus, onDiag }) {
     const stored = window.localStorage.getItem(STANDALONE_STORAGE_KEY)
     onNote(stored ?? SAMPLE_NOTE)
     onSpellcheck(true)
+    onHangingIndentPref(readHangingIndent())
     return {
       save(text) {
         onSaveStatus?.('saving')
         window.localStorage.setItem(STANDALONE_STORAGE_KEY, text)
         onSaveStatus?.('saved')
+      },
+      setHangingIndentPref(enabled) {
+        writeHangingIndent(enabled)
       },
     }
   }
@@ -106,7 +117,22 @@ export function connect({ onNote, onSpellcheck, onSaveStatus, onDiag }) {
 
   const relay = new ComponentRelay({
     targetWindow: window,
-    onReady: () => onDiag?.('ready'),
+    onReady: () => {
+      onDiag?.('ready')
+      // The component's own persisted data (component.data, which is what
+      // getComponentDataValueForKey reads) only becomes available right
+      // before onReady fires -- reading it any earlier would always see
+      // undefined. This is a device/editor-level preference stored by the
+      // host itself, not local browser storage, so unlike localStorage it
+      // survives regardless of whether this note's iframe gets torn down
+      // and recreated on note switches (confirmed this is the real cause of
+      // a bug where the hanging-indent toggle silently reverted after
+      // navigating away from a note and back -- an earlier version of this
+      // preference lived only in localStorage, which is exactly the kind of
+      // per-iframe-instance storage that doesn't survive that).
+      const stored = relay.getComponentDataValueForKey(HANGING_INDENT_DATA_KEY)
+      onHangingIndentPref(stored === undefined ? true : stored)
+    },
     // We're a full-pane editor (area: "editor-editor"): our own layout
     // already fills 100% of the iframe and scrolls internally via
     // CodeMirror's own scroller, so we don't need the host to resize the
@@ -152,6 +178,18 @@ export function connect({ onNote, onSpellcheck, onSaveStatus, onDiag }) {
         capturedNote.content.text = text
         capturedNote.content.preview_plain = buildPreview(text)
       }, () => onSaveStatus?.('saved'))
+    },
+    setHangingIndentPref(enabled) {
+      // Guard against the (unlikely but possible) case of a very fast
+      // toggle before the ComponentRegistered handshake has completed --
+      // setComponentDataValueForKey throws if component.data hasn't been
+      // initialized yet. Losing this one toggle's persistence is harmless;
+      // the editor's own display already reflects it either way.
+      try {
+        relay.setComponentDataValueForKey(HANGING_INDENT_DATA_KEY, enabled)
+      } catch (err) {
+        onDiag?.(`error: hanging-indent pref not saved (${err.message})`)
+      }
     },
   }
 }

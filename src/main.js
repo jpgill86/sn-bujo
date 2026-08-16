@@ -1,7 +1,6 @@
 import { createEditor } from './editor.js'
 import { createToolbar } from './toolbar.js'
 import { connect } from './relay.js'
-import { readHangingIndent, writeHangingIndent } from './prefs.js'
 import './styles.css'
 
 const parent = document.getElementById('editor')
@@ -78,13 +77,16 @@ setTimeout(() => {
 let bridge = null
 let toolbar = null
 
-const initialHangingIndent = readHangingIndent()
-
+// true is just the initial, optimistic render -- the real, persisted
+// preference is host-owned (see relay.js's onHangingIndentPref) and arrives
+// asynchronously, same as onSpellcheck below. A brief flash if the real
+// value turns out to be off is an acceptable tradeoff for not blocking the
+// editor's first paint on a round-trip to the host.
 const editor = createEditor({
   parent,
   doc: '',
   spellcheck: true,
-  hangingIndent: initialHangingIndent,
+  hangingIndent: true,
   onChange: (text) => {
     bridge?.save(text)
   },
@@ -94,10 +96,10 @@ const editor = createEditor({
 toolbar = createToolbar({
   container: toolbarEl,
   view: editor.view,
-  hangingIndent: initialHangingIndent,
+  hangingIndent: true,
   onToggleHangingIndent: (enabled) => {
     editor.setHangingIndent(enabled)
-    writeHangingIndent(enabled)
+    bridge?.setHangingIndentPref(enabled)
   },
 })
 toolbar.sync() // initial state: undo/redo both disabled, no history yet
@@ -105,6 +107,10 @@ toolbar.sync() // initial state: undo/redo both disabled, no history yet
 bridge = connect({
   onNote: (text) => editor.setDoc(text),
   onSpellcheck: (enabled) => editor.setSpellcheck(enabled),
+  onHangingIndentPref: (enabled) => {
+    editor.setHangingIndent(enabled)
+    toolbar.setHangingIndentPressed(enabled)
+  },
   onSaveStatus: showSaveStatus,
   onDiag: showDiag,
 })

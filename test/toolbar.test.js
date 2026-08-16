@@ -53,6 +53,7 @@ function makeEditorWithToolbar(text, { hangingIndent = true, onToggleHangingInde
 
   return {
     editor,
+    toolbar,
     undoBtn: container.querySelector('#undo-btn'),
     redoBtn: container.querySelector('#redo-btn'),
     hangingIndentBtn: container.querySelector('#hanging-indent-btn'),
@@ -181,5 +182,25 @@ describe('toolbar', () => {
     expect(onToggleHangingIndent).toHaveBeenLastCalledWith(true)
 
     expect(onToggleHangingIndent).toHaveBeenCalledTimes(2)
+  })
+
+  it('setHangingIndentPressed updates the button without calling onToggleHangingIndent', () => {
+    // This is the path main.js uses when the host's real, persisted
+    // preference arrives asynchronously and corrects the toolbar's initial
+    // optimistic guess (see relay.js). It must not call
+    // onToggleHangingIndent -- that callback is what persists a *user*
+    // toggle back to storage, and looping a read back into a write here
+    // would be pointless at best and could race with the real value at
+    // worst.
+    const onToggleHangingIndent = vi.fn()
+    const { toolbar, hangingIndentBtn } = makeEditorWithToolbar('hello', {
+      hangingIndent: true,
+      onToggleHangingIndent,
+    })
+
+    toolbar.setHangingIndentPressed(false)
+
+    expect(hangingIndentBtn.getAttribute('aria-pressed')).toBe('false')
+    expect(onToggleHangingIndent).not.toHaveBeenCalled()
   })
 })
