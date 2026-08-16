@@ -68,6 +68,11 @@ THU 13 AUG 2026
   no undo key — including as the recovery path for an accidental tap-to-cycle. The buttons never
   steal focus or close the on-screen keyboard, and gray out when there's nothing to undo/redo. See
   [`src/toolbar.js`](src/toolbar.js).
+- **Hanging indent** — a wrapped line's continuation aligns under the item's text instead of
+  running back to the left margin, so long entries stay easy to scan. Toggle it with the third
+  toolbar button (on by default; your choice is remembered across notes and sessions). Purely a
+  rendered offset — no characters are added to the document, so the stored note and the Plain Text
+  editor are unaffected either way. See [`src/indent.js`](src/indent.js).
 - **Header** — an unindented line naming a day of the week and containing a 4-digit year (e.g.
   `THU 13 AUG 2026`) is rendered in bold as a date header. Anything after the date (e.g. `THU 13
   AUG 2026  WEEK 33  SO-AND-SO'S BIRTHDAY`) stays bold but renders in a slightly muted shade —

@@ -43,19 +43,37 @@ function bindToolbarButton(btn, view, run) {
 }
 
 /**
- * Wire up an Undo/Redo toolbar (see index.html for the #undo-btn/#redo-btn
- * markup) to a CodeMirror view. Returns `sync()`, which the caller should
- * invoke on every editor update so the buttons stay correctly
- * enabled/disabled -- including for updates that aren't doc changes at all
- * (an undo/redo itself changes undoDepth/redoDepth without necessarily being
- * a "new" edit).
+ * Wire up the toolbar (see index.html for the #undo-btn/#redo-btn/
+ * #hanging-indent-btn markup) to a CodeMirror view.
+ *
+ * `hangingIndent` is the toggle's initial state (read from src/prefs.js by
+ * the caller); `onToggleHangingIndent(enabled)` fires after each toggle so
+ * the caller can apply it to the editor and persist it -- this module only
+ * owns the button's own on/off appearance, not the editor state or storage.
+ *
+ * Returns `sync()`, which the caller should invoke on every editor update so
+ * the Undo/Redo buttons stay correctly enabled/disabled -- including for
+ * updates that aren't doc changes at all (an undo/redo itself changes
+ * undoDepth/redoDepth without necessarily being a "new" edit).
  */
-export function createToolbar({ container, view }) {
+export function createToolbar({ container, view, hangingIndent, onToggleHangingIndent }) {
   const undoBtn = container.querySelector('#undo-btn')
   const redoBtn = container.querySelector('#redo-btn')
+  const hangingIndentBtn = container.querySelector('#hanging-indent-btn')
 
   bindToolbarButton(undoBtn, view, undo)
   bindToolbarButton(redoBtn, view, redo)
+
+  let hangingIndentEnabled = hangingIndent
+  hangingIndentBtn.setAttribute('aria-pressed', String(hangingIndentEnabled))
+  // aria-pressed is also the CSS hook for the button's persistent on/off
+  // look (styles.css), not just an accessibility attribute -- one write
+  // covers both, and can't drift out of sync with itself.
+  bindToolbarButton(hangingIndentBtn, view, () => {
+    hangingIndentEnabled = !hangingIndentEnabled
+    hangingIndentBtn.setAttribute('aria-pressed', String(hangingIndentEnabled))
+    onToggleHangingIndent?.(hangingIndentEnabled)
+  })
 
   function sync() {
     undoBtn.disabled = undoDepth(view.state) === 0

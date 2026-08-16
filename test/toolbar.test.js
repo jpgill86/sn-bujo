@@ -28,7 +28,7 @@ Range.prototype.getBoundingClientRect = () => ({
 // intentionally left for manual/on-device verification instead, consistent
 // with how test/cycle.test.js scopes itself.
 
-function makeEditorWithToolbar(text) {
+function makeEditorWithToolbar(text, { hangingIndent = true, onToggleHangingIndent } = {}) {
   const parent = document.createElement('div')
   document.body.appendChild(parent)
 
@@ -36,6 +36,7 @@ function makeEditorWithToolbar(text) {
   container.innerHTML = `
     <button type="button" id="undo-btn" disabled></button>
     <button type="button" id="redo-btn" disabled></button>
+    <button type="button" id="hanging-indent-btn"></button>
   `
   document.body.appendChild(container)
 
@@ -43,16 +44,18 @@ function makeEditorWithToolbar(text) {
   const editor = createEditor({
     parent,
     doc: text,
+    hangingIndent,
     onChange: vi.fn(),
     onUpdate: () => toolbar?.sync(),
   })
-  toolbar = createToolbar({ container, view: editor.view })
+  toolbar = createToolbar({ container, view: editor.view, hangingIndent, onToggleHangingIndent })
   toolbar.sync()
 
   return {
     editor,
     undoBtn: container.querySelector('#undo-btn'),
     redoBtn: container.querySelector('#redo-btn'),
+    hangingIndentBtn: container.querySelector('#hanging-indent-btn'),
   }
 }
 
@@ -152,5 +155,31 @@ describe('toolbar', () => {
     undoBtn.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }))
 
     expect(editor.view.state.doc.toString()).toBe('hello world') // still just one step undone
+  })
+
+  it('reflects the initial hangingIndent state via aria-pressed', () => {
+    const on = makeEditorWithToolbar('hello', { hangingIndent: true })
+    expect(on.hangingIndentBtn.getAttribute('aria-pressed')).toBe('true')
+
+    const off = makeEditorWithToolbar('hello', { hangingIndent: false })
+    expect(off.hangingIndentBtn.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('toggles aria-pressed and calls onToggleHangingIndent with the new state on each click', () => {
+    const onToggleHangingIndent = vi.fn()
+    const { hangingIndentBtn } = makeEditorWithToolbar('hello', {
+      hangingIndent: true,
+      onToggleHangingIndent,
+    })
+
+    hangingIndentBtn.click()
+    expect(hangingIndentBtn.getAttribute('aria-pressed')).toBe('false')
+    expect(onToggleHangingIndent).toHaveBeenLastCalledWith(false)
+
+    hangingIndentBtn.click()
+    expect(hangingIndentBtn.getAttribute('aria-pressed')).toBe('true')
+    expect(onToggleHangingIndent).toHaveBeenLastCalledWith(true)
+
+    expect(onToggleHangingIndent).toHaveBeenCalledTimes(2)
   })
 })

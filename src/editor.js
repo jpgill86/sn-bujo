@@ -2,9 +2,11 @@ import { EditorState, Compartment, Annotation, Transaction } from '@codemirror/s
 import { EditorView, keymap, drawSelection } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap, indentWithTab, deleteCharBackwardStrict } from '@codemirror/commands'
 import { bujoHighlight } from './decorate.js'
+import { bujoHangingIndent } from './indent.js'
 import { taskCycle } from './cycle.js'
 
 const spellcheckCompartment = new Compartment()
+const hangingIndentCompartment = new Compartment()
 
 // Tags a transaction as a remote (host-driven) content update rather than a
 // user edit, so the update listener below can tell them apart. This used to
@@ -22,7 +24,7 @@ const remoteUpdate = Annotation.define()
  * Create a CodeMirror editor bound to `parent`, calling `onChange(docText)`
  * whenever the user edits the document (not when we programmatically set it).
  */
-export function createEditor({ parent, doc, onChange, onUpdate, spellcheck = true }) {
+export function createEditor({ parent, doc, onChange, onUpdate, spellcheck = true, hangingIndent = true }) {
   const state = EditorState.create({
     doc,
     extensions: [
@@ -44,6 +46,7 @@ export function createEditor({ parent, doc, onChange, onUpdate, spellcheck = tru
       ]),
       EditorState.tabSize.of(2),
       spellcheckCompartment.of(EditorView.contentAttributes.of({ spellcheck: String(spellcheck) })),
+      hangingIndentCompartment.of(hangingIndent ? bujoHangingIndent : []),
       bujoHighlight,
       taskCycle,
       EditorView.updateListener.of((update) => {
@@ -84,6 +87,12 @@ export function createEditor({ parent, doc, onChange, onUpdate, spellcheck = tru
         effects: spellcheckCompartment.reconfigure(
           EditorView.contentAttributes.of({ spellcheck: String(enabled) })
         ),
+      })
+    },
+    /** Toggle hanging indents for wrapped lines -- display-only, never touches the document. */
+    setHangingIndent(enabled) {
+      view.dispatch({
+        effects: hangingIndentCompartment.reconfigure(enabled ? bujoHangingIndent : []),
       })
     },
   }

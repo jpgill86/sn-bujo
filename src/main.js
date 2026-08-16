@@ -1,6 +1,7 @@
 import { createEditor } from './editor.js'
 import { createToolbar } from './toolbar.js'
 import { connect } from './relay.js'
+import { readHangingIndent, writeHangingIndent } from './prefs.js'
 import './styles.css'
 
 const parent = document.getElementById('editor')
@@ -77,18 +78,29 @@ setTimeout(() => {
 let bridge = null
 let toolbar = null
 
+const initialHangingIndent = readHangingIndent()
+
 const editor = createEditor({
   parent,
   doc: '',
   spellcheck: true,
+  hangingIndent: initialHangingIndent,
   onChange: (text) => {
     bridge?.save(text)
   },
   onUpdate: () => toolbar?.sync(),
 })
 
-toolbar = createToolbar({ container: toolbarEl, view: editor.view })
-toolbar.sync() // initial state: both disabled, no history yet
+toolbar = createToolbar({
+  container: toolbarEl,
+  view: editor.view,
+  hangingIndent: initialHangingIndent,
+  onToggleHangingIndent: (enabled) => {
+    editor.setHangingIndent(enabled)
+    writeHangingIndent(enabled)
+  },
+})
+toolbar.sync() // initial state: undo/redo both disabled, no history yet
 
 bridge = connect({
   onNote: (text) => editor.setDoc(text),

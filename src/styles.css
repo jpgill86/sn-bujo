@@ -71,6 +71,17 @@ body {
 }
 
 /*
+ * Persistent on/off look for the hanging-indent toggle -- distinct from the
+ * :hover rule above, which fades away between interactions. aria-pressed is
+ * set by src/toolbar.js on every toggle, so this is always in sync with the
+ * actual state rather than a separate class that could drift from it.
+ */
+#toolbar button[aria-pressed='true'] {
+  background: var(--sn-stylekit-info-backdrop-color, rgba(8, 109, 214, 0.15));
+  color: var(--sn-stylekit-info-color, #086dd6);
+}
+
+/*
  * Small, unobtrusive status readouts. Exist so connection/save problems are
  * visible without needing devtools/remote debugging -- e.g. if save-status
  * gets stuck on "Saving..." indefinitely, the host never acknowledged our
@@ -168,6 +179,30 @@ body {
 }
 
 /* --- bullet journal tokens --- */
+
+/*
+ * Hanging indent for wrapped lines (src/indent.js), toggleable via the
+ * toolbar. Display-only -- no characters are added to the document, this is
+ * purely a rendered offset on the line box.
+ *
+ * Deliberately not text-indent: the CodeMirror community settled on
+ * border-left + a ::before after finding text-indent interferes with
+ * rectangular selection (the left edge grows outside the text when the
+ * first rendered line is indented). border-left shifts every wrapped row of
+ * the line right by --bujo-indent; the ::before's negative margin then
+ * pulls just the first row back to where it started, producing a hang
+ * without moving any text on that first row. ch units are exact here since
+ * the editor is monospace (.cm-editor's font-family above), so no font-width
+ * measurement is needed.
+ */
+.cm-bujo-hanging-indent {
+  border-left: var(--bujo-indent) solid transparent;
+}
+
+.cm-bujo-hanging-indent::before {
+  content: '';
+  margin-left: calc(-1 * var(--bujo-indent));
+}
 
 .cm-bujo-timestamp {
   color: var(--sn-stylekit-grey-1, #72767e);
