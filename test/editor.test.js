@@ -87,3 +87,39 @@ describe('createEditor remote vs. local updates', () => {
     expect(editor.view.state.doc.toString()).toBe('important content that must not be lost')
   })
 })
+
+// Regression coverage for a real behavior mismatch with Plain Text: CodeMirror's
+// defaultKeymap binds Backspace to deleteCharBackward, which special-cases a
+// cursor preceded only by whitespace by deleting back to the previous
+// indent-unit tab stop instead of one character. bujo entries are full of
+// deep, space-indented continuation lines, so that divergence was very
+// noticeable. editor.js overrides Backspace with the strict, always-one-char
+// variant -- verify that wiring with a real keydown, not just by asserting
+// which command function was passed to keymap.of().
+describe('Backspace over runs of leading whitespace', () => {
+  function pressBackspace(view) {
+    view.contentDOM.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Backspace', keyCode: 8, which: 8, bubbles: true, cancelable: true })
+    )
+  }
+
+  it('deletes exactly one space at a time, not to the previous tab stop', () => {
+    const editor = makeEditor(vi.fn())
+    editor.setDoc('        content') // 8 leading spaces
+    editor.view.dispatch({ selection: { anchor: 8 } })
+
+    pressBackspace(editor.view)
+
+    expect(editor.view.state.doc.toString()).toBe('       content') // 7 spaces
+  })
+
+  it('still deletes one full tab character in one keystroke', () => {
+    const editor = makeEditor(vi.fn())
+    editor.setDoc('\t\tcontent')
+    editor.view.dispatch({ selection: { anchor: 2 } })
+
+    pressBackspace(editor.view)
+
+    expect(editor.view.state.doc.toString()).toBe('\tcontent')
+  })
+})

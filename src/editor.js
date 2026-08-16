@@ -1,6 +1,6 @@
 import { EditorState, Compartment, Annotation } from '@codemirror/state'
 import { EditorView, keymap, drawSelection } from '@codemirror/view'
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
+import { defaultKeymap, history, historyKeymap, indentWithTab, deleteCharBackwardStrict } from '@codemirror/commands'
 import { bujoHighlight } from './decorate.js'
 import { taskCycle } from './cycle.js'
 
@@ -29,7 +29,19 @@ export function createEditor({ parent, doc, onChange, spellcheck = true }) {
       history(),
       drawSelection(),
       EditorView.lineWrapping,
-      keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+      // defaultKeymap's Backspace is deleteCharBackward, which special-cases
+      // runs of leading whitespace: it deletes back to the previous
+      // indent-unit tab stop in one keystroke instead of one character. That
+      // divergence from plain-text Backspace is exactly what a bujo entry's
+      // deep, space-indented continuation lines trigger constantly. Override
+      // with the strict, always-one-character variant so Backspace behaves
+      // identically to the Plain Text editor's textarea.
+      keymap.of([
+        { key: 'Backspace', run: deleteCharBackwardStrict, shift: deleteCharBackwardStrict },
+        ...defaultKeymap,
+        ...historyKeymap,
+        indentWithTab,
+      ]),
       EditorState.tabSize.of(2),
       spellcheckCompartment.of(EditorView.contentAttributes.of({ spellcheck: String(spellcheck) })),
       bujoHighlight,
