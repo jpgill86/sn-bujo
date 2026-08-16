@@ -186,15 +186,43 @@ body {
  * @codemirror/view 6.36.3). Under EditContext, Android's own native
  * selection UI (including the drag handles) appears to take over rendering
  * the highlight entirely, bypassing drawSelection()'s custom
- * .cm-selectionBackground layer above -- so that fix alone didn't help on
- * Android even though it fixed desktop. CodeMirror's own hideNativeSelection
- * theme sets `.cm-line ::selection` to transparent with !important
- * specifically to suppress native selection in favor of its own layer; this
- * overrides that back on, matching the same tinted color, in case native
- * selection is still what actually renders in this mode. Needs !important
- * to have any chance against CodeMirror's own !important rule.
+ * .cm-selectionBackground layer above.
+ *
+ * CodeMirror's own hideNativeSelection theme (read directly out of its
+ * injected <style> tag to get this right, rather than guessing) actually
+ * registers two separate pairs of rules:
+ *
+ *   .cm-line ::selection, .cm-line::selection { background: transparent }
+ *   .cm-content :focus::selection, .cm-content :focus ::selection
+ *     { background: Highlight }
+ *
+ * The first pair is the general case; the second, more specific pair
+ * (3 classes vs. 2 -- the extra `:focus`) wins by specificity alone,
+ * `!important` or not, whenever something inside .cm-content has focus --
+ * which is how EditContext represents an active touch-selection on
+ * Android. `Highlight` is a CSS system-color keyword: it resolves to
+ * whatever the OS's own native selection color is, which is the actual
+ * lavender that was showing through no matter what background color this
+ * file specified.
+ *
+ * Both pairs need overriding, each at higher specificity than CodeMirror's
+ * own (the earlier version of this rule only covered the "::selection" with
+ * a leading space -- descendant -- form, missing plain unstyled text that
+ * isn't wrapped in one of this file's own decoration spans). `.cm-editor`
+ * repeated is a deliberate specificity bump (doubling a real class is valid
+ * CSS and just as legitimate as a compound selector, only harder to read at
+ * a glance -- hence this comment): it guarantees a win over CodeMirror's
+ * 3-class `:focus` rule regardless of DOM insertion order, the same
+ * guarantee compound selectors give the simpler overrides elsewhere in this
+ * file.
  */
-.cm-editor .cm-line ::selection {
+.cm-editor .cm-line ::selection,
+.cm-editor .cm-line::selection {
+  background: var(--bujo-selection-bg) !important;
+}
+
+.cm-editor.cm-editor .cm-content :focus::selection,
+.cm-editor.cm-editor .cm-content :focus ::selection {
   background: var(--bujo-selection-bg) !important;
 }
 
