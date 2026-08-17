@@ -55,7 +55,23 @@ function showDiag(stage) {
   if (stage === 'standalone' || stage === 'ready' || stage === 'item-received') {
     sawHealthySignal = true
   }
-  if (diagEl && (stage.startsWith('error:') || stage.startsWith('rejection:'))) {
+  if (
+    diagEl &&
+    (stage.startsWith('error:') ||
+      stage.startsWith('rejection:') ||
+      // Diagnostic-only reveal for every sw-* outcome, not just failures: a
+      // real offline test worked for a while then reverted to the original
+      // failure, on a timescale (~10 minutes) that matches GitHub Pages'
+      // ordinary HTTP cache-control freshness window, not anything this
+      // app's own cache-first service worker would ever produce (it has no
+      // time-based expiry at all). That strongly suggests the service
+      // worker isn't actually the thing serving offline in that case --
+      // plain HTTP caching coincidentally is, same as the false lead
+      // investigated earlier for another SN plugin -- and this reveal
+      // exists to get a real device's own sw-* reading to confirm or rule
+      // that out, rather than continuing to guess from here.
+      stage.startsWith('sw-'))
+  ) {
     diagEl.hidden = false
   }
 }
@@ -149,7 +165,26 @@ if (import.meta.env.PROD) {
       }
       navigator.serviceWorker
         .register('./sw.js')
-        .then(() => showDiag('sw-registered'))
+        .then((registration) => {
+          showDiag('sw-registered')
+          // register() resolving only means a registration now exists --
+          // it does NOT mean install/activate succeeded, since those run
+          // independently afterward (e.g. the precache's own network
+          // fetches could fail). Track the real outcome too, so a failed
+          // install isn't mistaken for a working service worker just
+          // because 'sw-registered' appeared.
+          if (registration.active) {
+            showDiag('sw-active')
+            return
+          }
+          registration.addEventListener('updatefound', () => {
+            const installing = registration.installing
+            installing?.addEventListener('statechange', () => {
+              if (installing.state === 'activated') showDiag('sw-active')
+              else if (installing.state === 'redundant') showDiag('sw-install-failed')
+            })
+          })
+        })
         .catch((err) => showDiag(`sw-failed: ${err.message}`))
     } catch (err) {
       // Same defensive posture as prefs.js's localStorage wrapper, for the
