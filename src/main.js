@@ -125,29 +125,48 @@ bridge = connect({
 // during local development, which is a well-known footgun with service
 // workers. Verify offline behavior against `npm run build && npm run
 // preview` instead (see README).
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  try {
-    const register = () =>
+if (import.meta.env.PROD) {
+  // The try/catch has to be *inside* this function, wrapping every line,
+  // not wrapped around the call to registerServiceWorker() (or around just
+  // the code that sets this up) from the outside. This function usually
+  // runs deferred, from the 'load' listener below -- a throw from inside an
+  // event-listener callback happens on its own fresh call stack and is
+  // simply invisible to a try/catch that was only in scope back when
+  // addEventListener() was called; it becomes an uncaught global error
+  // instead, in the *listener's* stack. An earlier version of this guard
+  // made exactly that mistake, confirmed on a real device: it worked when
+  // document.readyState happened to already be 'complete' (register() runs
+  // synchronously, inside the original try), but the SecurityError from a
+  // sandboxed iframe's disabled `navigator.serviceWorker` -- lacking the
+  // allow-same-origin flag -- surfaced as an uncaught error (visible as
+  // "error: Uncaught SecurityError..." in the connection trace) once it
+  // actually ran from the 'load' listener instead, which is the common case.
+  function registerServiceWorker() {
+    try {
+      if (!('serviceWorker' in navigator)) {
+        showDiag('sw-unsupported')
+        return
+      }
       navigator.serviceWorker
         .register('./sw.js')
         .then(() => showDiag('sw-registered'))
         .catch((err) => showDiag(`sw-failed: ${err.message}`))
-    // Deferred to `load`, not run immediately: the precache's cache:'reload'
-    // fetches would otherwise compete for the same connection as the host
-    // <-> component handshake above, which is already known to be
-    // timing-sensitive on Android (see the stalled-handshake detection
-    // above). Costs nothing to wait, since the SW only matters for the
-    // *next* load anyway.
-    if (document.readyState === 'complete') register()
-    else window.addEventListener('load', register)
-  } catch (err) {
-    // Merely *accessing* navigator.serviceWorker can throw SecurityError in
-    // an opaque-origin or sandboxed iframe -- same defensive posture as
-    // prefs.js's localStorage wrapper, for the same class of reason. Not
-    // just a .catch() on the promise: the throw can happen before any
-    // promise exists.
-    showDiag(`sw-failed: ${err.message}`)
+    } catch (err) {
+      // Same defensive posture as prefs.js's localStorage wrapper, for the
+      // same class of reason: merely *accessing* navigator.serviceWorker
+      // can throw in a sandboxed or opaque-origin context, not just calling
+      // register() on it.
+      showDiag(`sw-failed: ${err.message}`)
+    }
   }
+  // Deferred to `load`, not run immediately: the precache's cache:'reload'
+  // fetches would otherwise compete for the same connection as the host <->
+  // component handshake above, which is already known to be
+  // timing-sensitive on Android (see the stalled-handshake detection
+  // above). Costs nothing to wait, since the SW only matters for the *next*
+  // load anyway.
+  if (document.readyState === 'complete') registerServiceWorker()
+  else window.addEventListener('load', registerServiceWorker)
 }
 // Deliberately not gated by relay.js's isStandalone check -- that governs
 // the note-content path only. This is about this document's own static
