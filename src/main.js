@@ -55,23 +55,7 @@ function showDiag(stage) {
   if (stage === 'standalone' || stage === 'ready' || stage === 'item-received') {
     sawHealthySignal = true
   }
-  if (
-    diagEl &&
-    (stage.startsWith('error:') ||
-      stage.startsWith('rejection:') ||
-      // Diagnostic-only reveal for every sw-* outcome, not just failures: a
-      // real offline test worked for a while then reverted to the original
-      // failure, on a timescale (~10 minutes) that matches GitHub Pages'
-      // ordinary HTTP cache-control freshness window, not anything this
-      // app's own cache-first service worker would ever produce (it has no
-      // time-based expiry at all). That strongly suggests the service
-      // worker isn't actually the thing serving offline in that case --
-      // plain HTTP caching coincidentally is, same as the false lead
-      // investigated earlier for another SN plugin -- and this reveal
-      // exists to get a real device's own sw-* reading to confirm or rule
-      // that out, rather than continuing to guess from here.
-      stage.startsWith('sw-'))
-  ) {
+  if (diagEl && (stage.startsWith('error:') || stage.startsWith('rejection:'))) {
     diagEl.hidden = false
   }
 }

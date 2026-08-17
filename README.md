@@ -202,8 +202,11 @@ A few things worth knowing:
 - If service worker registration fails or isn't available, the editor just behaves exactly as
   before: online-only, no error shown to the user. `sw-registered` / `sw-active` /
   `sw-install-failed` / `sw-unsupported` / `sw-failed: ...` are recorded in the connection trace
-  (below), and — unlike other diagnostic stages — *do* auto-reveal it, specifically so this can be
-  confirmed on a real device without needing remote devtools access.
+  (below), but — like every other non-error stage — don't cause it to auto-reveal; a failed or
+  unsupported service worker isn't user-facing breakage, and the iframe is recreated per note open,
+  so auto-revealing on every `sw-*` stage would nag constantly on any platform that blocks service
+  workers. Inspect the trace element via remote devtools if you need to confirm which stage a given
+  platform reaches.
 
 ## Data-integrity guarantee
 
