@@ -106,11 +106,24 @@ Run the parser test suite:
 npm test
 ```
 
-Build for production (outputs to `dist/`, including the generated `dist/sn-bujo.json` manifest):
+Build for production (outputs to `dist/`, including the generated `dist/sn-bujo.json` manifest and
+`dist/sw.js` service worker):
 
 ```sh
 npm run build
 ```
+
+To verify offline behavior, the dev server won't do — it deliberately never registers a service
+worker (see "Offline support" below), so use a production build instead:
+
+```sh
+npm run build
+npm run preview
+```
+
+Open `http://localhost:8001`, let it load once, then in DevTools → Application → Service Workers
+confirm it's registered and activated, and in the Network tab check "Offline" and reload — the
+editor should still load and work.
 
 ## Installing on a machine (production)
 
@@ -131,7 +144,8 @@ bumps automatically — no need to reinstall on each machine.
    ```
 3. GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) builds the
    plugin, publishes `dist/` to GitHub Pages, and attaches a `sn-bujo-dist.zip` to the release for
-   the desktop app's offline install path (`download_url` in the manifest).
+   the desktop app's offline install path (`download_url` in the manifest). The build also
+   generates `dist/sw.js` (see "Offline support" below); no separate release step needed.
 
 One-time setup: in the repo's Settings → Pages, set Source to "GitHub Actions".
 
@@ -149,6 +163,30 @@ Two small, unobtrusive readouts live at the bottom of the editor:
   error, or no sign of life from the host within a few seconds (some failures — see
   [`src/relay.js`](src/relay.js) — never throw, so this isn't limited to reacting to errors).
   If you ever see it, whatever it stopped at is where the connection broke.
+
+## Offline support
+
+The plugin is loaded by the host app as a live iframe (`src` pointing at the URL in the manifest),
+so with no caching it fails to load at all with no network connection — unlike Standard Notes'
+built-in Plain Text editor, which ships inside the host app itself. [`src/sw.js`](src/sw.js), a
+hand-rolled service worker (built via [`scripts/build-sw.mjs`](scripts/build-sw.mjs)), caches this
+plugin's own HTML/CSS/JS shell so it keeps working after a successful online load. Note content
+itself was never affected by this — it flows through `@standardnotes/component-relay`'s
+`postMessage` protocol, not a network fetch.
+
+A few things worth knowing:
+- **One successful online load is required first**, and separately for each context you use it in
+  — opening the plugin in the Standard Notes app and opening `https://jpgill86.github.io/sn-bujo/`
+  directly in a browser tab are different storage partitions; each needs its own online load before
+  it can work offline.
+- A newly released version becomes visible on the *next* load after it's fetched, since the cache
+  is served cache-first (deliberately, so a weak/flaky connection can't hang a load the way
+  network-first would — see `src/sw.js` for the reasoning).
+- If service worker registration fails or isn't available (e.g. a sandboxed iframe without
+  same-origin access), the editor just behaves exactly as before: online-only, no error shown to
+  the user. `sw-registered` / `sw-unsupported` / `sw-failed: ...` are recorded in the connection
+  trace (below) either way, but deliberately don't trigger it to auto-reveal itself — inspect it via
+  devtools (`#diag-status`'s `textContent`) if troubleshooting offline behavior specifically.
 
 ## Data-integrity guarantee
 

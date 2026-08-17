@@ -114,3 +114,43 @@ bridge = connect({
   onSaveStatus: showSaveStatus,
   onDiag: showDiag,
 })
+
+// Without this, the plugin's iframe fails to load at all with no network
+// connection -- the host reloads it from the hosted url every time a note
+// using it is opened, and note content itself (which arrives via
+// postMessage above, not a network fetch) is beside the point if the editor
+// never loads in the first place. See src/sw.js for the caching strategy.
+//
+// PROD-only: the dev server would otherwise serve a stale cached build
+// during local development, which is a well-known footgun with service
+// workers. Verify offline behavior against `npm run build && npm run
+// preview` instead (see README).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  try {
+    const register = () =>
+      navigator.serviceWorker
+        .register('./sw.js')
+        .then(() => showDiag('sw-registered'))
+        .catch((err) => showDiag(`sw-failed: ${err.message}`))
+    // Deferred to `load`, not run immediately: the precache's cache:'reload'
+    // fetches would otherwise compete for the same connection as the host
+    // <-> component handshake above, which is already known to be
+    // timing-sensitive on Android (see the stalled-handshake detection
+    // above). Costs nothing to wait, since the SW only matters for the
+    // *next* load anyway.
+    if (document.readyState === 'complete') register()
+    else window.addEventListener('load', register)
+  } catch (err) {
+    // Merely *accessing* navigator.serviceWorker can throw SecurityError in
+    // an opaque-origin or sandboxed iframe -- same defensive posture as
+    // prefs.js's localStorage wrapper, for the same class of reason. Not
+    // just a .catch() on the promise: the throw can happen before any
+    // promise exists.
+    showDiag(`sw-failed: ${err.message}`)
+  }
+}
+// Deliberately not gated by relay.js's isStandalone check -- that governs
+// the note-content path only. This is about this document's own static
+// assets, fetched the same way whether standalone or iframe-embedded; the
+// only difference is which browser storage partition the registration
+// lands in, which is the browser's business, not ours.

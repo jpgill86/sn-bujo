@@ -1,6 +1,6 @@
 {
   "name": "sn-bujo",
-  "version": "0.5.5",
+  "version": "0.6.0",
   "description": "A Standard Notes editor with syntax highlighting for bullet-journal style plain text notes.",
   "private": true,
   "license": "MIT",
@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/build-manifest.mjs",
+    "build": "vite build && node scripts/build-manifest.mjs && node scripts/build-sw.mjs",
     "preview": "vite preview --port 8001",
     "test": "vitest run"
   },
@@ -25,7 +25,7 @@
     "file_type": "txt",
     "spellcheckControl": true,
     "showInGallery": true,
-    "description": "A minimal, plain-text-preserving editor for daily bullet-journal notes: subtle timestamps, bold color-coded bullets, tap a task bullet to cycle its state, an always-available Undo/Redo toolbar, and toggleable hanging indents for wrapped lines."
+    "description": "A minimal, plain-text-preserving editor for daily bullet-journal notes: subtle timestamps, bold color-coded bullets, tap a task bullet to cycle its state, an always-available Undo/Redo toolbar, toggleable hanging indents for wrapped lines, and offline support after the first load."
   },
   "dependencies": {
     "@codemirror/commands": "^6.7.1",
