@@ -174,19 +174,36 @@ plugin's own HTML/CSS/JS shell so it keeps working after a successful online loa
 itself was never affected by this — it flows through `@standardnotes/component-relay`'s
 `postMessage` protocol, not a network fetch.
 
+⚠️ **Confirmed not working on the Standard Notes Android app as of this writing.** The app embeds
+this plugin's iframe with a `sandbox` attribute that omits `allow-same-origin`, which disables
+Service Workers entirely — `navigator.serviceWorker` throws a `SecurityError` on access
+(`"Service worker is disabled because the context is sandboxed and lacks the 'allow-same-origin'
+flag"`). This is a host-level restriction; no code change in this plugin can work around it. It's a
+long-standing, previously-acknowledged limitation of the mobile app for remotely-loaded editor
+plugins generally (not specific to this plugin — see
+[standardnotes/forum#3925](https://github.com/standardnotes/forum/issues/3925), where the same
+failure is reported for a different editor, and the older
+[standardnotes/forum#2040](https://github.com/standardnotes/forum/issues/2040) /
+[#827](https://github.com/standardnotes/forum/issues/827) discussions of offline editor support on
+mobile going back to 2018). The service worker code stays in this repo anyway: it works correctly
+on desktop and web (verified, including as a third-party iframe embed, which is the storage
+partitioning shape closest to how the host actually loads it), degrades to today's online-only
+behavior with no user-visible error wherever Service Workers aren't available, and would start
+working automatically on mobile too if Standard Notes ever adds `allow-same-origin`.
+
 A few things worth knowing:
-- **One successful online load is required first**, and separately for each context you use it in
-  — opening the plugin in the Standard Notes app and opening `https://jpgill86.github.io/sn-bujo/`
-  directly in a browser tab are different storage partitions; each needs its own online load before
-  it can work offline.
+- **One successful online load is required first** on any platform where it *does* work, and
+  separately for each context you use it in — opening the plugin in the Standard Notes app and
+  opening `https://jpgill86.github.io/sn-bujo/` directly in a browser tab are different storage
+  partitions; each needs its own online load before it can work offline.
 - A newly released version becomes visible on the *next* load after it's fetched, since the cache
   is served cache-first (deliberately, so a weak/flaky connection can't hang a load the way
   network-first would — see `src/sw.js` for the reasoning).
-- If service worker registration fails or isn't available (e.g. a sandboxed iframe without
-  same-origin access), the editor just behaves exactly as before: online-only, no error shown to
-  the user. `sw-registered` / `sw-unsupported` / `sw-failed: ...` are recorded in the connection
-  trace (below) either way, but deliberately don't trigger it to auto-reveal itself — inspect it via
-  devtools (`#diag-status`'s `textContent`) if troubleshooting offline behavior specifically.
+- If service worker registration fails or isn't available, the editor just behaves exactly as
+  before: online-only, no error shown to the user. `sw-registered` / `sw-active` /
+  `sw-install-failed` / `sw-unsupported` / `sw-failed: ...` are recorded in the connection trace
+  (below), and — unlike other diagnostic stages — *do* auto-reveal it, specifically so this can be
+  confirmed on a real device without needing remote devtools access.
 
 ## Data-integrity guarantee
 
